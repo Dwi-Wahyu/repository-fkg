@@ -78,7 +78,7 @@ function HomeComponent() {
             size="lg"
             className="h-14 px-8 rounded-2xl cursor-pointer"
           >
-            <Link to="/ajukan" className="text-white!">
+            <Link to="/ajukan">
               <FileText className="mr-2.5 h-5 w-5" />
               Ajukan Bebas Pustaka
             </Link>
