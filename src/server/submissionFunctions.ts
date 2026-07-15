@@ -551,3 +551,172 @@ export const getDashboardStatsFn = createServerFn({ method: "GET" }).handler(
 		};
 	},
 );
+
+export const updateSubmissionFn = createServerFn({ method: "POST" })
+	.validator((d: any) => d)
+	.handler(async ({ data }) => {
+		const user = await getUserFromSession();
+		if (!user || user.role !== "admin") {
+			throw new Error("Unauthorized");
+		}
+
+		if (!(data instanceof FormData)) {
+			throw new Error("Invalid request content type, expected FormData");
+		}
+		await ensureUploadDirs();
+
+		const idStr = data.get("id") as string;
+		if (!idStr) throw new Error("ID pengajuan wajib diisi");
+		const id = parseInt(idStr);
+
+		const namaLengkap = data.get("namaLengkap") as string;
+		const nim = data.get("nim") as string;
+		const dosenPembimbingPenguji = data.get("dosenPembimbingPenguji") as string;
+		const judulSkripsi = data.get("judulSkripsi") as string;
+		const alamatLengkap = data.get("alamatLengkap") as string;
+		const noTelp = data.get("noTelp") as string;
+		const programStudi = data.get("programStudi") as any;
+		const email = data.get("email") as string;
+		const sumbanganBuku = (data.get("sumbanganBuku") || "tidak_ada") as any;
+		const status = data.get("status") as any;
+		const catatanAdmin = data.get("catatanAdmin") as string || null;
+
+		// 1. Fetch existing submission
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(eq(submissions.id, id));
+		const sub = list[0];
+		if (!sub) {
+			throw new Error("Pengajuan tidak ditemukan");
+		}
+
+		// 2. Validate text inputs using schema
+		await submissionValidationSchema.validate(
+			{
+				namaLengkap,
+				nim,
+				dosenPembimbingPenguji,
+				judulSkripsi,
+				alamatLengkap,
+				noTelp,
+				programStudi,
+				email,
+				sumbanganBuku,
+			},
+			{ abortEarly: false },
+		);
+
+		if (!["pending", "diverifikasi", "ditolak"].includes(status)) {
+			throw new Error("Status tidak valid");
+		}
+
+		// 3. File handling
+		const kartuMahasiswa = data.get("kartuMahasiswa") as File | null;
+		const skripsi = data.get("skripsi") as File | null;
+
+		const updateValues: any = {
+			namaLengkap,
+			nim,
+			dosenPembimbingPenguji,
+			judulSkripsi,
+			alamatLengkap,
+			noTelp,
+			programStudi,
+			email,
+			sumbanganBuku,
+			status,
+			catatanAdmin,
+		};
+
+		if (status !== sub.status) {
+			updateValues.verifiedByUserId = user.id;
+			updateValues.verifiedAt = new Date();
+		}
+
+		const timestamp = Date.now();
+		const getExt = (filename: string, mime: string) => {
+			const ext = filename.split(".").pop();
+			if (ext && ext.length <= 4) return ext.toLowerCase();
+			if (mime === "application/pdf") return "pdf";
+			if (mime === "image/jpeg") return "jpg";
+			if (mime === "image/png") return "png";
+			return "bin";
+		};
+
+		// If a new KTM is uploaded
+		if (kartuMahasiswa && kartuMahasiswa.size > 0) {
+			if (kartuMahasiswa.size > 10 * 1024 * 1024) {
+				throw new Error("Ukuran file Kartu Mahasiswa maksimal 10 MB");
+			}
+			const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
+			if (!validKMTypes.includes(kartuMahasiswa.type)) {
+				throw new Error("Format Kartu Mahasiswa harus PDF, JPG, atau PNG");
+			}
+
+			// Naming
+			const kmExt = getExt(kartuMahasiswa.name, kartuMahasiswa.type);
+			const kmFileName = `${sub.trackingCode}-kartu-${timestamp}.${kmExt}`;
+			const kmRelPath = join("uploads", "kartu-mahasiswa", kmFileName);
+			const kmAbsPath = join(process.cwd(), kmRelPath);
+
+			// Write new file
+			const kmArrayBuffer = await kartuMahasiswa.arrayBuffer();
+			await writeFile(kmAbsPath, Buffer.from(kmArrayBuffer));
+
+			// Delete old file
+			if (sub.kartuMahasiswaPath) {
+				try {
+					await unlink(join(process.cwd(), sub.kartuMahasiswaPath));
+				} catch (e) {
+					console.error("Failed to delete old kartu mahasiswa file:", e);
+				}
+			}
+
+			// Add to values
+			updateValues.kartuMahasiswaPath = kmRelPath;
+			updateValues.kartuMahasiswaOriginalName = kartuMahasiswa.name;
+		}
+
+		// If a new Skripsi is uploaded
+		if (skripsi && skripsi.size > 0) {
+			if (skripsi.size > 10 * 1024 * 1024) {
+				throw new Error("Ukuran file Skripsi maksimal 10 MB");
+			}
+			if (skripsi.type !== "application/pdf") {
+				throw new Error("Format File Skripsi harus PDF");
+			}
+
+			// Naming
+			const skripsiExt = getExt(skripsi.name, skripsi.type);
+			const skripsiFileName = `${sub.trackingCode}-skripsi-${timestamp}.${skripsiExt}`;
+			const skripsiRelPath = join("uploads", "skripsi", skripsiFileName);
+			const skripsiAbsPath = join(process.cwd(), skripsiRelPath);
+
+			// Write new file
+			const skripsiArrayBuffer = await skripsi.arrayBuffer();
+			await writeFile(skripsiAbsPath, Buffer.from(skripsiArrayBuffer));
+
+			// Delete old file
+			if (sub.skripsiPath) {
+				try {
+					await unlink(join(process.cwd(), sub.skripsiPath));
+				} catch (e) {
+					console.error("Failed to delete old skripsi file:", e);
+				}
+			}
+
+			// Add to values
+			updateValues.skripsiPath = skripsiRelPath;
+			updateValues.skripsiOriginalName = skripsi.name;
+		}
+
+		// 4. Update database
+		await db
+			.update(submissions)
+			.set(updateValues)
+			.where(eq(submissions.id, id));
+
+		return { success: true };
+	});
+

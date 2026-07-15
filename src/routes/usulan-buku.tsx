@@ -6,6 +6,7 @@ import {
   BookPlus,
   Calendar,
   CheckCircle2,
+  Upload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
@@ -36,6 +37,8 @@ interface LocalHistoryItem {
 
 function UsulanBukuComponent() {
   const [judulBuku, setJudulBuku] = useState("");
+  const [penerbit, setPenerbit] = useState("");
+  const [coverBuku, setCoverBuku] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [history, setHistory] = useState<LocalHistoryItem[]>([]);
@@ -85,6 +88,15 @@ function UsulanBukuComponent() {
     } else if (judulBuku.trim().length > 500) {
       newErrors.judulBuku = "Judul Buku maksimal 500 karakter";
     }
+
+    if (coverBuku) {
+      if (!coverBuku.type.startsWith("image/")) {
+        newErrors.coverBuku = "File harus berupa gambar";
+      } else if (coverBuku.size > 5 * 1024 * 1024) {
+        newErrors.coverBuku = "Ukuran file maksimal 5 MB";
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -95,8 +107,17 @@ function UsulanBukuComponent() {
 
     setLoading(true);
     try {
+      const formData = new FormData();
+      formData.append("judulBuku", judulBuku.trim());
+      if (penerbit.trim()) {
+        formData.append("penerbit", penerbit.trim());
+      }
+      if (coverBuku) {
+        formData.append("coverBuku", coverBuku);
+      }
+
       const res = await createBookSuggestionFn({
-        data: { judulBuku: judulBuku.trim() },
+        data: formData,
       });
 
       if (res.success) {
@@ -117,6 +138,8 @@ function UsulanBukuComponent() {
 
         // Reset form and sync cooldown
         setJudulBuku("");
+        setPenerbit("");
+        setCoverBuku(null);
         syncCooldown();
       }
     } catch (err: any) {
@@ -233,6 +256,62 @@ function UsulanBukuComponent() {
                   <p className="text-xs text-destructive mt-1 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
                     {errors.judulBuku}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="penerbit">
+                  Penerbit <span className="text-muted-foreground text-xs">(Opsional)</span>
+                </Label>
+                <Input
+                  id="penerbit"
+                  placeholder="Masukkan nama penerbit..."
+                  value={penerbit}
+                  onChange={(e) => setPenerbit(e.target.value)}
+                  disabled={!cooldown.canSubmit || loading}
+                  className="bg-background/50"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="coverBuku" className="flex items-center gap-1">
+                  Cover Buku <span className="text-muted-foreground text-xs">(Opsional, Gambar Maks 5 MB)</span>
+                </Label>
+                <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-6 bg-background/10 transition-colors relative">
+                  <input
+                    type="file"
+                    id="coverBuku"
+                    accept="image/*"
+                    disabled={!cooldown.canSubmit || loading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setCoverBuku(file);
+                      if (errors.coverBuku) {
+                        setErrors((prev) => {
+                          const { coverBuku, ...rest } = prev;
+                          return rest;
+                        });
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                  <span className="text-xs font-semibold text-muted-foreground text-center">
+                    {coverBuku
+                      ? coverBuku.name
+                      : "Klik atau seret file gambar cover ke sini"}
+                  </span>
+                  {coverBuku && (
+                    <span className="text-[10px] text-indigo-500 font-medium mt-1">
+                      {(coverBuku.size / (1024 * 1024)).toFixed(2)} MB
+                    </span>
+                  )}
+                </div>
+                {errors.coverBuku && (
+                  <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.coverBuku}
                   </p>
                 )}
               </div>

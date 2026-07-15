@@ -1,3 +1,5 @@
+import { mkdir, writeFile, unlink, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
 import { and, asc, desc, eq, like, sql } from "drizzle-orm";
@@ -15,11 +17,25 @@ export const bookSuggestionValidationSchema = yup.object().shape({
 		.max(500, "Judul buku maksimal 500 karakter"),
 });
 
+async function ensureCoverDirs() {
+	const base = join(process.cwd(), "uploads");
+	await mkdir(join(base, "cover-buku"), { recursive: true });
+}
+
 export const createBookSuggestionFn = createServerFn({ method: "POST" })
-	.validator((d: { judulBuku: string }) => d)
+	.validator((d: any) => d)
 	.handler(async ({ data }) => {
+		if (!(data instanceof FormData)) {
+			throw new Error("Invalid request content type, expected FormData");
+		}
+		await ensureCoverDirs();
+
+		const judulBuku = data.get("judulBuku") as string;
+		const penerbit = (data.get("penerbit") as string || "").trim() || null;
+		const coverBuku = data.get("coverBuku") as File | null;
+
 		// 1. Validate inputs
-		const validated = await bookSuggestionValidationSchema.validate(data);
+		const validated = await bookSuggestionValidationSchema.validate({ judulBuku });
 		const judulBukuTrimmed = validated.judulBuku.trim();
 
 		// 2. Cooldown check (24 hours) via server cookie
@@ -41,14 +57,52 @@ export const createBookSuggestionFn = createServerFn({ method: "POST" })
 			}
 		}
 
-		// 3. Insert record in database
+		let coverBukuPath: string | null = null;
+		let coverBukuOriginalName: string | null = null;
+
+		// 3. File validation
+		if (coverBuku && coverBuku.size > 0) {
+			if (coverBuku.size > 5 * 1024 * 1024) {
+				throw new Error("Ukuran file cover buku maksimal 5 MB");
+			}
+			if (!coverBuku.type.startsWith("image/")) {
+				throw new Error("Format file cover buku harus berupa gambar");
+			}
+
+			const getExt = (filename: string, mime: string) => {
+				const ext = filename.split(".").pop();
+				if (ext && ext.length <= 4) return ext.toLowerCase();
+				if (mime === "image/png") return "png";
+				if (mime === "image/jpeg") return "jpg";
+				if (mime === "image/webp") return "webp";
+				if (mime === "image/gif") return "gif";
+				return "img";
+			};
+
+			const timestamp = Date.now();
+			const ext = getExt(coverBuku.name, coverBuku.type);
+			const fileName = `cover-${timestamp}-${Math.random().toString(36).substring(2, 6)}.${ext}`;
+			const relPath = join("uploads", "cover-buku", fileName);
+			const absPath = join(process.cwd(), relPath);
+
+			const arrayBuffer = await coverBuku.arrayBuffer();
+			await writeFile(absPath, Buffer.from(arrayBuffer));
+
+			coverBukuPath = relPath;
+			coverBukuOriginalName = coverBuku.name;
+		}
+
+		// 4. Insert record in database
 		const result = await db.insert(bookSuggestions).values({
 			judulBuku: judulBukuTrimmed,
+			penerbit,
+			coverBukuPath,
+			coverBukuOriginalName,
 		});
 
 		const insertId = result[0].insertId;
 
-		// 4. Set cooldown cookie for 24 hours
+		// 5. Set cooldown cookie for 24 hours
 		setCookie("last_usulan_buku_at", Date.now().toString(), {
 			path: "/",
 			httpOnly: true,
@@ -165,6 +219,70 @@ export const deleteBookSuggestionFn = createServerFn({ method: "POST" })
 			throw new Error("Unauthorized");
 		}
 
+		const list = await db
+			.select()
+			.from(bookSuggestions)
+			.where(eq(bookSuggestions.id, id));
+		const suggestion = list[0];
+		if (!suggestion) {
+			throw new Error("Usulan buku tidak ditemukan");
+		}
+
+		// Delete cover image if exists
+		if (suggestion.coverBukuPath) {
+			try {
+				await unlink(join(process.cwd(), suggestion.coverBukuPath));
+			} catch (e) {
+				console.error("Failed to delete cover book file:", e);
+			}
+		}
+
 		await db.delete(bookSuggestions).where(eq(bookSuggestions.id, id));
 		return { success: true };
+	});
+
+export const downloadBookCoverFn = createServerFn({ method: "POST" })
+	.validator((id: number) => id)
+	.handler(async ({ data: id }) => {
+		const user = await getUserFromSession();
+		if (!user || user.role !== "admin") {
+			throw new Error("Unauthorized");
+		}
+
+		const list = await db
+			.select()
+			.from(bookSuggestions)
+			.where(eq(bookSuggestions.id, id));
+		const suggestion = list[0];
+		if (!suggestion) {
+			throw new Error("Usulan buku tidak ditemukan");
+		}
+
+		if (!suggestion.coverBukuPath) {
+			throw new Error("Cover buku tidak ditemukan");
+		}
+
+		const absPath = join(process.cwd(), suggestion.coverBukuPath);
+		let fileBuffer: Buffer;
+		try {
+			fileBuffer = await readFile(absPath);
+		} catch {
+			throw new Error("File tidak ditemukan di server");
+		}
+
+		const base64 = fileBuffer.toString("base64");
+		let mimeType = "image/jpeg";
+		if (suggestion.coverBukuPath.toLowerCase().endsWith(".png")) {
+			mimeType = "image/png";
+		} else if (suggestion.coverBukuPath.toLowerCase().endsWith(".webp")) {
+			mimeType = "image/webp";
+		} else if (suggestion.coverBukuPath.toLowerCase().endsWith(".gif")) {
+			mimeType = "image/gif";
+		}
+
+		return {
+			base64,
+			mimeType,
+			fileName: suggestion.coverBukuOriginalName || "cover.jpg",
+		};
 	});

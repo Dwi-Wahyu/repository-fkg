@@ -10,6 +10,7 @@ import {
 	ArrowUpDown,
 	ArrowUp,
 	ArrowDown,
+	Image,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -31,10 +32,17 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+} from "../../components/ui/dialog";
 import { toast } from "../../components/ui/useToast";
 import {
 	deleteBookSuggestionFn,
 	getBookSuggestionsFn,
+	downloadBookCoverFn,
 } from "../../server/bookSuggestionFunctions";
 
 export const Route = createFileRoute("/admin/usulan-buku")({
@@ -68,6 +76,39 @@ function AdminUsulanBukuComponent() {
 	const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 	const [targetId, setTargetId] = useState<number | null>(null);
 	const [loadingAction, setLoadingAction] = useState(false);
+
+	const [isCoverDialogOpen, setIsCoverDialogOpen] = useState(false);
+	const [selectedCoverUrl, setSelectedCoverUrl] = useState<string | null>(null);
+	const [loadingCover, setLoadingCover] = useState(false);
+
+	const handleShowCover = async (itemId: number) => {
+		setLoadingCover(true);
+		setIsCoverDialogOpen(true);
+		try {
+			const res = await downloadBookCoverFn({ data: itemId });
+			const binaryString = window.atob(res.base64);
+			const bytes = new Uint8Array(binaryString.length);
+			for (let i = 0; i < binaryString.length; i++) {
+				bytes[i] = binaryString.charCodeAt(i);
+			}
+			const blob = new Blob([bytes], { type: res.mimeType });
+			const url = window.URL.createObjectURL(blob);
+			setSelectedCoverUrl(url);
+		} catch (err: any) {
+			toast.error(err.message || "Gagal memuat cover buku");
+			setIsCoverDialogOpen(false);
+		} finally {
+			setLoadingCover(false);
+		}
+	};
+
+	const handleCloseCoverDialog = () => {
+		setIsCoverDialogOpen(false);
+		if (selectedCoverUrl) {
+			window.URL.revokeObjectURL(selectedCoverUrl);
+			setSelectedCoverUrl(null);
+		}
+	};
 
 	const handleSearch = (e: React.FormEvent) => {
 		e.preventDefault();
@@ -159,6 +200,8 @@ function AdminUsulanBukuComponent() {
 					<TableHeader className="bg-muted/15">
 						<TableRow>
 							<TableHead className="font-bold py-4">Judul Buku</TableHead>
+							<TableHead className="font-bold py-4">Penerbit</TableHead>
+							<TableHead className="font-bold text-center py-4">Cover</TableHead>
 							<TableHead className="w-[220px] font-bold py-4">
 								<button
 									type="button"
@@ -179,7 +222,7 @@ function AdminUsulanBukuComponent() {
 					<TableBody>
 						{items.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
+								<TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
 									<div className="flex flex-col items-center justify-center space-y-2">
 										<BookOpen className="h-8 w-8 text-muted-foreground/55" />
 										<p className="text-xs font-semibold">Belum ada usulan buku yang ditemukan.</p>
@@ -191,6 +234,23 @@ function AdminUsulanBukuComponent() {
 								<TableRow key={item.id} className="hover:bg-muted/5 transition-colors">
 									<TableCell className="font-medium align-middle py-3.5">
 										{item.judulBuku}
+									</TableCell>
+									<TableCell className="align-middle py-3.5 text-xs text-muted-foreground">
+										{item.penerbit || "-"}
+									</TableCell>
+									<TableCell className="align-middle py-3.5 text-center">
+										{item.coverBukuPath ? (
+											<Button
+												variant="outline"
+												size="sm"
+												className="cursor-pointer gap-1 h-8 rounded-lg"
+												onClick={() => handleShowCover(item.id)}
+											>
+												<Image className="h-3.5 w-3.5" /> Lihat Cover
+											</Button>
+										) : (
+											<span className="text-muted-foreground text-xs font-semibold">-</span>
+										)}
 									</TableCell>
 									<TableCell className="text-muted-foreground align-middle font-mono py-3.5">
 										<div className="flex items-center gap-1.5 text-xs">
@@ -285,6 +345,37 @@ function AdminUsulanBukuComponent() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			{/* Cover Preview Dialog */}
+			<Dialog open={isCoverDialogOpen} onOpenChange={(val) => { if (!val) handleCloseCoverDialog(); }}>
+				<DialogContent className="max-w-lg bg-card border-border rounded-3xl overflow-hidden p-6">
+					<DialogHeader>
+						<DialogTitle className="text-lg font-bold">Preview Cover Buku</DialogTitle>
+					</DialogHeader>
+					<div className="flex items-center justify-center p-2 min-h-64 bg-muted/10 border border-border rounded-2xl overflow-hidden mt-4">
+						{loadingCover ? (
+							<div className="text-sm text-muted-foreground animate-pulse">Memuat gambar cover...</div>
+						) : selectedCoverUrl ? (
+							<img
+								src={selectedCoverUrl}
+								alt="Cover Buku"
+								className="max-w-full max-h-[450px] object-contain rounded-lg shadow-md"
+							/>
+						) : (
+							<div className="text-sm text-muted-foreground">Cover buku tidak dapat dimuat</div>
+						)}
+					</div>
+					<div className="flex justify-end pt-4 mt-2">
+						<Button
+							variant="outline"
+							className="border-border rounded-xl cursor-pointer"
+							onClick={handleCloseCoverDialog}
+						>
+							Tutup
+						</Button>
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

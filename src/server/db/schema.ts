@@ -88,5 +88,8 @@ export const submissions = mysqlTable("submissions", {
 export const bookSuggestions = mysqlTable("book_suggestions", {
 	id: int("id").primaryKey().autoincrement(),
 	judulBuku: varchar("judul_buku", { length: 500 }).notNull(),
+	penerbit: varchar("penerbit", { length: 255 }),
+	coverBukuPath: varchar("cover_buku_path", { length: 500 }),
+	coverBukuOriginalName: varchar("cover_buku_original_name", { length: 255 }),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 });

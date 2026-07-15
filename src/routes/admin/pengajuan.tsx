@@ -21,6 +21,9 @@ import {
   User,
   X,
   XCircle,
+  Pencil,
+  Plus,
+  Upload,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
@@ -83,6 +86,8 @@ import {
   getSubmissionsFn,
   rejectSubmissionFn,
   verifySubmissionFn,
+  updateSubmissionFn,
+  createSubmissionFn,
 } from "../../server/submissionFunctions";
 
 export const Route = createFileRoute("/admin/pengajuan")({
@@ -130,9 +135,270 @@ function AdminPengajuanComponent() {
   const [actionId, setActionId] = useState<number | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
+  // Edit Submission states
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editNamaLengkap, setEditNamaLengkap] = useState("");
+  const [editNim, setEditNim] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editNoTelp, setEditNoTelp] = useState("");
+  const [editAlamatLengkap, setEditAlamatLengkap] = useState("");
+  const [editProgramStudi, setEditProgramStudi] = useState("");
+  const [editDosenPembimbing, setEditDosenPembimbing] = useState("");
+  const [editJudulSkripsi, setEditJudulSkripsi] = useState("");
+  const [editSumbanganBuku, setEditSumbanganBuku] = useState("");
+  const [editStatus, setEditStatus] = useState<
+    "pending" | "diverifikasi" | "ditolak"
+  >("pending");
+  const [editCatatanAdmin, setEditCatatanAdmin] = useState("");
+  const [editKtmFile, setEditKtmFile] = useState<File | null>(null);
+  const [editSkripsiFile, setEditSkripsiFile] = useState<File | null>(null);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
+  const validateEditForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!editNamaLengkap.trim())
+      newErrors.namaLengkap = "Nama lengkap wajib diisi";
+    else if (editNamaLengkap.trim().length < 3)
+      newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
+
+    if (!editNim.trim()) newErrors.nim = "NIM/Stambuk wajib diisi";
+    else if (editNim.trim().length < 5)
+      newErrors.nim = "NIM/Stambuk minimal 5 karakter";
+    else if (!/^[a-zA-Z0-9.\-/]+$/.test(editNim.trim()))
+      newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+
+    if (!editEmail.trim()) newErrors.email = "Email wajib diisi";
+    else if (!/\S+@\S+\.\S+/.test(editEmail))
+      newErrors.email = "Format email tidak valid";
+
+    if (!editNoTelp.trim()) newErrors.noTelp = "Nomor telepon wajib diisi";
+    else if (editNoTelp.trim().length < 9)
+      newErrors.noTelp = "Nomor telepon minimal 9 digit";
+    else if (!/^[0-9+\s\-()]+$/.test(editNoTelp))
+      newErrors.noTelp = "Format nomor telepon tidak valid";
+
+    if (!editAlamatLengkap.trim())
+      newErrors.alamatLengkap = "Alamat lengkap wajib diisi";
+    else if (editAlamatLengkap.trim().length < 10)
+      newErrors.alamatLengkap = "Alamat lengkap minimal 10 karakter";
+
+    if (!editProgramStudi)
+      newErrors.programStudi = "Program studi wajib dipilih";
+
+    if (!editDosenPembimbing.trim())
+      newErrors.dosenPembimbing = "Dosen pembimbing & penguji wajib diisi";
+    else if (editDosenPembimbing.trim().length < 5)
+      newErrors.dosenPembimbing = "Minimal 5 karakter";
+
+    if (!editJudulSkripsi.trim())
+      newErrors.judulSkripsi = "Judul skripsi wajib diisi";
+    else if (editJudulSkripsi.trim().length < 5)
+      newErrors.judulSkripsi = "Judul skripsi minimal 5 karakter";
+
+    if (editKtmFile) {
+      const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!validKMTypes.includes(editKtmFile.type)) {
+        newErrors.kartuMahasiswa = "Format file harus PDF, JPG, atau PNG";
+      }
+      if (editKtmFile.size > 10 * 1024 * 1024) {
+        newErrors.kartuMahasiswa = "Ukuran file maksimal 10 MB";
+      }
+    }
+
+    if (editSkripsiFile) {
+      if (editSkripsiFile.type !== "application/pdf") {
+        newErrors.skripsi = "Format file harus PDF";
+      }
+      if (editSkripsiFile.size > 10 * 1024 * 1024) {
+        newErrors.skripsi = "Ukuran file maksimal 10 MB";
+      }
+    }
+
+    setEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSub) return;
+    if (!validateEditForm()) {
+      toast.error("Silakan lengkapi form edit dengan benar.");
+      return;
+    }
+
+    setLoadingAction(true);
+    try {
+      const formData = new FormData();
+      formData.append("id", selectedSub.id.toString());
+      formData.append("namaLengkap", editNamaLengkap.trim());
+      formData.append("nim", editNim.trim().toUpperCase());
+      formData.append("email", editEmail.trim());
+      formData.append("noTelp", editNoTelp.trim());
+      formData.append("alamatLengkap", editAlamatLengkap.trim());
+      formData.append("programStudi", editProgramStudi);
+      formData.append("dosenPembimbingPenguji", editDosenPembimbing.trim());
+      formData.append("judulSkripsi", editJudulSkripsi.trim());
+      formData.append("sumbanganBuku", editSumbanganBuku);
+      formData.append("status", editStatus);
+      formData.append("catatanAdmin", editCatatanAdmin.trim() || "");
+
+      if (editKtmFile) {
+        formData.append("kartuMahasiswa", editKtmFile);
+      }
+      if (editSkripsiFile) {
+        formData.append("skripsi", editSkripsiFile);
+      }
+
+      const res = await updateSubmissionFn({ data: formData });
+      if (res.success) {
+        toast.success("Pengajuan berhasil diperbarui!");
+        setIsEditOpen(false);
+        setSelectedSub(null);
+        navigate({ search: searchParams, replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal memperbarui pengajuan");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  // Add Submission states
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [addNamaLengkap, setAddNamaLengkap] = useState("");
+  const [addNim, setAddNim] = useState("");
+  const [addEmail, setAddEmail] = useState("");
+  const [addNoTelp, setAddNoTelp] = useState("");
+  const [addAlamatLengkap, setAddAlamatLengkap] = useState("");
+  const [addProgramStudi, setAddProgramStudi] = useState("");
+  const [addDosenPembimbing, setAddDosenPembimbing] = useState("");
+  const [addJudulSkripsi, setAddJudulSkripsi] = useState("");
+  const [addSumbanganBuku, setAddSumbanganBuku] = useState("tidak_ada");
+  const [addKtmFile, setAddKtmFile] = useState<File | null>(null);
+  const [addSkripsiFile, setAddSkripsiFile] = useState<File | null>(null);
+  const [addErrors, setAddErrors] = useState<Record<string, string>>({});
+
+  const validateAddForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!addNamaLengkap.trim()) newErrors.namaLengkap = "Nama lengkap wajib diisi";
+    else if (addNamaLengkap.trim().length < 3)
+      newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
+
+    if (!addNim.trim()) newErrors.nim = "NIM/Stambuk wajib diisi";
+    else if (addNim.trim().length < 5)
+      newErrors.nim = "NIM/Stambuk minimal 5 karakter";
+    else if (!/^[a-zA-Z0-9.\-/]+$/.test(addNim.trim()))
+      newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+
+    if (!addEmail.trim()) newErrors.email = "Email wajib diisi";
+    else if (!/\S+@\S+\.\S+/.test(addEmail))
+      newErrors.email = "Format email tidak valid";
+
+    if (!addNoTelp.trim()) newErrors.noTelp = "Nomor telepon wajib diisi";
+    else if (addNoTelp.trim().length < 9)
+      newErrors.noTelp = "Nomor telepon minimal 9 digit";
+    else if (!/^[0-9+\s\-()]+$/.test(addNoTelp))
+      newErrors.noTelp = "Format nomor telepon tidak valid";
+
+    if (!addAlamatLengkap.trim())
+      newErrors.alamatLengkap = "Alamat lengkap wajib diisi";
+    else if (addAlamatLengkap.trim().length < 10)
+      newErrors.alamatLengkap = "Alamat lengkap minimal 10 karakter";
+
+    if (!addProgramStudi) newErrors.programStudi = "Program studi wajib dipilih";
+
+    if (!addDosenPembimbing.trim())
+      newErrors.dosenPembimbing = "Dosen pembimbing & penguji wajib diisi";
+    else if (addDosenPembimbing.trim().length < 5)
+      newErrors.dosenPembimbing = "Minimal 5 karakter";
+
+    if (!addJudulSkripsi.trim())
+      newErrors.judulSkripsi = "Judul skripsi wajib diisi";
+    else if (addJudulSkripsi.trim().length < 5)
+      newErrors.judulSkripsi = "Judul skripsi minimal 5 karakter";
+
+    if (!addKtmFile) {
+      newErrors.kartuMahasiswa = "Kartu Mahasiswa wajib diunggah";
+    } else {
+      const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
+      if (!validKMTypes.includes(addKtmFile.type)) {
+        newErrors.kartuMahasiswa = "Format file harus PDF, JPG, atau PNG";
+      }
+      if (addKtmFile.size > 10 * 1024 * 1024) {
+        newErrors.kartuMahasiswa = "Ukuran file maksimal 10 MB";
+      }
+    }
+
+    if (!addSkripsiFile) {
+      newErrors.skripsi = "File Skripsi wajib diunggah";
+    } else {
+      if (addSkripsiFile.type !== "application/pdf") {
+        newErrors.skripsi = "Format file harus PDF";
+      }
+      if (addSkripsiFile.size > 10 * 1024 * 1024) {
+        newErrors.skripsi = "Ukuran file maksimal 10 MB";
+      }
+    }
+
+    setAddErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateAddForm()) {
+      toast.error("Silakan lengkapi form pengajuan dengan benar.");
+      return;
+    }
+
+    setLoadingAction(true);
+    try {
+      const formData = new FormData();
+      formData.append("namaLengkap", addNamaLengkap.trim());
+      formData.append("nim", addNim.trim().toUpperCase());
+      formData.append("email", addEmail.trim());
+      formData.append("noTelp", addNoTelp.trim());
+      formData.append("alamatLengkap", addAlamatLengkap.trim());
+      formData.append("programStudi", addProgramStudi);
+      formData.append("dosenPembimbingPenguji", addDosenPembimbing.trim());
+      formData.append("judulSkripsi", addJudulSkripsi.trim());
+      formData.append("sumbanganBuku", addSumbanganBuku || "tidak_ada");
+      if (addKtmFile) formData.append("kartuMahasiswa", addKtmFile);
+      if (addSkripsiFile) formData.append("skripsi", addSkripsiFile);
+
+      const res = await createSubmissionFn({ data: formData });
+      if (res.success) {
+        toast.success(`Pengajuan berhasil ditambahkan! Kode Tracking: ${res.trackingCode}`);
+        setIsAddOpen(false);
+        // Reset states
+        setAddNamaLengkap("");
+        setAddNim("");
+        setAddEmail("");
+        setAddNoTelp("");
+        setAddAlamatLengkap("");
+        setAddProgramStudi("");
+        setAddDosenPembimbing("");
+        setAddJudulSkripsi("");
+        setAddSumbanganBuku("tidak_ada");
+        setAddKtmFile(null);
+        setAddSkripsiFile(null);
+        setAddErrors({});
+        navigate({ search: searchParams, replace: true });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal menambahkan pengajuan");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
   // File Previews states
   const [ktmPreviewUrl, setKtmPreviewUrl] = useState<string | null>(null);
-  const [skripsiPreviewUrl, setSkripsiPreviewUrl] = useState<string | null>(null);
+  const [skripsiPreviewUrl, setSkripsiPreviewUrl] = useState<string | null>(
+    null,
+  );
   const [loadingPreview, setLoadingPreview] = useState(false);
 
   useEffect(() => {
@@ -149,7 +415,9 @@ function AdminPengajuanComponent() {
       try {
         // Fetch KTM
         try {
-          const res = await downloadSubmissionFileFn({ data: { id: selectedSub.id, fileType: "kartu" } });
+          const res = await downloadSubmissionFileFn({
+            data: { id: selectedSub.id, fileType: "kartu" },
+          });
           const binaryString = window.atob(res.base64);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
@@ -164,7 +432,9 @@ function AdminPengajuanComponent() {
 
         // Fetch Skripsi
         try {
-          const res = await downloadSubmissionFileFn({ data: { id: selectedSub.id, fileType: "skripsi" } });
+          const res = await downloadSubmissionFileFn({
+            data: { id: selectedSub.id, fileType: "skripsi" },
+          });
           const binaryString = window.atob(res.base64);
           const bytes = new Uint8Array(binaryString.length);
           for (let i = 0; i < binaryString.length; i++) {
@@ -366,6 +636,27 @@ function AdminPengajuanComponent() {
             Unhas.
           </p>
         </div>
+        <Button
+          className="rounded-xl cursor-pointer gap-2"
+          onClick={() => {
+            setAddNamaLengkap("");
+            setAddNim("");
+            setAddEmail("");
+            setAddNoTelp("");
+            setAddAlamatLengkap("");
+            setAddProgramStudi("");
+            setAddDosenPembimbing("");
+            setAddJudulSkripsi("");
+            setAddSumbanganBuku("tidak_ada");
+            setAddKtmFile(null);
+            setAddSkripsiFile(null);
+            setAddErrors({});
+            setIsAddOpen(true);
+          }}
+        >
+          <Plus className="h-4 w-4" />
+          Tambah Pengajuan
+        </Button>
       </div>
 
       {/* Search & Filter controls */}
@@ -574,6 +865,33 @@ function AdminPengajuanComponent() {
                           </>
                         )}
                         <DropdownMenuItem
+                          className="cursor-pointer gap-2"
+                          onClick={() => {
+                            setSelectedSub(item);
+                            setEditNamaLengkap(item.namaLengkap);
+                            setEditNim(item.nim);
+                            setEditEmail(item.email || "");
+                            setEditNoTelp(item.noTelp || "");
+                            setEditAlamatLengkap(item.alamatLengkap || "");
+                            setEditProgramStudi(item.programStudi);
+                            setEditDosenPembimbing(
+                              item.dosenPembimbingPenguji || "",
+                            );
+                            setEditJudulSkripsi(item.judulSkripsi);
+                            setEditSumbanganBuku(
+                              item.sumbanganBuku || "tidak_ada",
+                            );
+                            setEditStatus(item.status);
+                            setEditCatatanAdmin(item.catatanAdmin || "");
+                            setEditKtmFile(null);
+                            setEditSkripsiFile(null);
+                            setEditErrors({});
+                            setIsEditOpen(true);
+                          }}
+                        >
+                          <Pencil size={14} /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           className="text-rose-600 dark:text-rose-400 cursor-pointer gap-2"
                           onClick={() => {
                             setActionId(item.id);
@@ -652,19 +970,20 @@ function AdminPengajuanComponent() {
                     {getStatusBadge(selectedSub.status)}
                   </div>
 
-                  {selectedSub.status === "ditolak" && selectedSub.catatanAdmin && (
-                    <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-2.5">
-                      <XCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <strong className="text-xs text-rose-950 dark:text-rose-300 font-bold block">
-                          Alasan Penolakan:
-                        </strong>
-                        <p className="text-xs text-rose-800 dark:text-rose-400 whitespace-pre-wrap leading-relaxed">
-                          {selectedSub.catatanAdmin}
-                        </p>
+                  {selectedSub.status === "ditolak" &&
+                    selectedSub.catatanAdmin && (
+                      <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-2.5">
+                        <XCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                        <div className="space-y-1">
+                          <strong className="text-xs text-rose-950 dark:text-rose-300 font-bold block">
+                            Alasan Penolakan:
+                          </strong>
+                          <p className="text-xs text-rose-800 dark:text-rose-400 whitespace-pre-wrap leading-relaxed">
+                            {selectedSub.catatanAdmin}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* Student Identitas Section */}
                   <div className="space-y-3">
@@ -673,17 +992,27 @@ function AdminPengajuanComponent() {
                     </h3>
                     <div className="space-y-3.5">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Nama Lengkap</span>
-                        <span className="font-semibold text-foreground text-sm">{selectedSub.namaLengkap}</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Nama Lengkap
+                        </span>
+                        <span className="font-semibold text-foreground text-sm">
+                          {selectedSub.namaLengkap}
+                        </span>
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Stambuk / NIM</span>
-                        <span className="font-mono font-semibold text-foreground text-sm">{selectedSub.nim}</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Stambuk / NIM
+                        </span>
+                        <span className="font-mono font-semibold text-foreground text-sm">
+                          {selectedSub.nim}
+                        </span>
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Program Studi</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Program Studi
+                        </span>
                         <span className="font-semibold text-foreground text-sm">
                           {programStudiMap[
                             selectedSub.programStudi as keyof typeof programStudiMap
@@ -692,7 +1021,9 @@ function AdminPengajuanComponent() {
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Email</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Email
+                        </span>
                         <span className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                           <Mail size={12} className="text-muted-foreground" />
                           {selectedSub.email}
@@ -700,7 +1031,9 @@ function AdminPengajuanComponent() {
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">No. Telepon</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          No. Telepon
+                        </span>
                         <span className="font-semibold text-foreground text-sm flex items-center gap-1.5">
                           <Phone size={12} className="text-muted-foreground" />
                           {selectedSub.noTelp}
@@ -708,7 +1041,9 @@ function AdminPengajuanComponent() {
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Alamat Lengkap</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Alamat Lengkap
+                        </span>
                         <span className="font-semibold text-foreground text-sm flex items-start gap-1">
                           <MapPin
                             size={12}
@@ -727,21 +1062,27 @@ function AdminPengajuanComponent() {
                     </h3>
                     <div className="space-y-3.5">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Dosen Pembimbing & Penguji</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Dosen Pembimbing & Penguji
+                        </span>
                         <span className="font-semibold text-foreground text-sm whitespace-pre-wrap">
                           {selectedSub.dosenPembimbingPenguji}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-muted-foreground text-xs font-semibold">Sumbangan Buku</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Sumbangan Buku
+                        </span>
                         <span className="font-semibold text-foreground text-sm capitalize">
                           {selectedSub.sumbanganBuku?.replace("_", " ")}
                         </span>
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-muted-foreground text-xs font-semibold">Judul Karya Ilmiah</span>
+                        <span className="text-muted-foreground text-xs font-semibold">
+                          Judul Karya Ilmiah
+                        </span>
                         <p className="text-xs bg-muted/20 border border-border/40 p-2.5 rounded-lg italic font-medium leading-relaxed text-foreground">
                           "{selectedSub.judulSkripsi}"
                         </p>
@@ -750,24 +1091,25 @@ function AdminPengajuanComponent() {
                   </div>
 
                   {/* Verification Info Footer if processed */}
-                  {selectedSub.status !== "pending" && selectedSub.verifiedAt && (
-                    <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 pt-3 border-t border-border/40">
-                      <Calendar size={11} />
-                      <span>
-                        Diproses pada{" "}
-                        {new Date(selectedSub.verifiedAt).toLocaleDateString(
-                          "id-ID",
-                          {
-                            day: "numeric",
-                            month: "long",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </span>
-                    </div>
-                  )}
+                  {selectedSub.status !== "pending" &&
+                    selectedSub.verifiedAt && (
+                      <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 pt-3 border-t border-border/40">
+                        <Calendar size={11} />
+                        <span>
+                          Diproses pada{" "}
+                          {new Date(selectedSub.verifiedAt).toLocaleDateString(
+                            "id-ID",
+                            {
+                              day: "numeric",
+                              month: "long",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                        </span>
+                      </div>
+                    )}
                 </div>
 
                 {/* Right Column: Berkas Persyaratan & Previews */}
@@ -782,7 +1124,9 @@ function AdminPengajuanComponent() {
                         type="button"
                         variant="outline"
                         className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
-                        onClick={() => handleDownloadFile(selectedSub.id, "kartu")}
+                        onClick={() =>
+                          handleDownloadFile(selectedSub.id, "kartu")
+                        }
                       >
                         <div className="flex items-center gap-2 text-left truncate pr-2">
                           <FileText
@@ -794,7 +1138,8 @@ function AdminPengajuanComponent() {
                               Kartu Mahasiswa
                             </span>
                             <span className="text-xs truncate font-semibold block mt-0.5">
-                              {selectedSub.kartuMahasiswaOriginalName || "KTM.pdf"}
+                              {selectedSub.kartuMahasiswaOriginalName ||
+                                "KTM.pdf"}
                             </span>
                           </div>
                         </div>
@@ -841,23 +1186,37 @@ function AdminPengajuanComponent() {
                         <span className="text-xs font-bold text-muted-foreground block">
                           Preview Kartu Mahasiswa:
                         </span>
-                        {selectedSub.kartuMahasiswaOriginalName?.toLowerCase().endsWith(".pdf") ? (
+                        {selectedSub.kartuMahasiswaOriginalName
+                          ?.toLowerCase()
+                          .endsWith(".pdf") ? (
                           ktmPreviewUrl ? (
                             <div className="w-full h-96 rounded-xl border border-border overflow-hidden bg-muted/10 shadow-inner">
-                              <iframe src={`${ktmPreviewUrl}#toolbar=0`} className="w-full h-full" title="Preview KTM" />
+                              <iframe
+                                src={`${ktmPreviewUrl}#toolbar=0`}
+                                className="w-full h-full"
+                                title="Preview KTM"
+                              />
                             </div>
                           ) : (
                             <div className="text-xs text-muted-foreground py-12 text-center border border-dashed border-border rounded-xl bg-muted/5">
-                              {loadingPreview ? "Membuat preview KTM PDF..." : "Gagal memuat preview KTM PDF"}
+                              {loadingPreview
+                                ? "Membuat preview KTM PDF..."
+                                : "Gagal memuat preview KTM PDF"}
                             </div>
                           )
                         ) : ktmPreviewUrl ? (
                           <div className="w-full h-96 rounded-xl border border-border overflow-hidden bg-muted/10 flex items-center justify-center p-3 shadow-inner">
-                            <img src={ktmPreviewUrl} className="max-w-full max-h-88 object-contain rounded-lg shadow-sm" alt="KTM Preview" />
+                            <img
+                              src={ktmPreviewUrl}
+                              className="max-w-full max-h-88 object-contain rounded-lg shadow-sm"
+                              alt="KTM Preview"
+                            />
                           </div>
                         ) : (
                           <div className="text-xs text-muted-foreground py-12 text-center border border-dashed border-border rounded-xl bg-muted/5">
-                            {loadingPreview ? "Memuat preview KTM..." : "Gagal memuat preview KTM"}
+                            {loadingPreview
+                              ? "Memuat preview KTM..."
+                              : "Gagal memuat preview KTM"}
                           </div>
                         )}
                       </div>
@@ -867,14 +1226,22 @@ function AdminPengajuanComponent() {
                         <span className="text-xs font-bold text-muted-foreground block">
                           Preview File Skripsi (PDF):
                         </span>
-                        {selectedSub.skripsiOriginalName?.toLowerCase().endsWith(".pdf") ? (
+                        {selectedSub.skripsiOriginalName
+                          ?.toLowerCase()
+                          .endsWith(".pdf") ? (
                           skripsiPreviewUrl ? (
                             <div className="w-full h-[500px] rounded-xl border border-border overflow-hidden bg-muted/10 shadow-inner">
-                              <iframe src={`${skripsiPreviewUrl}#toolbar=0`} className="w-full h-full" title="Preview Skripsi" />
+                              <iframe
+                                src={`${skripsiPreviewUrl}#toolbar=0`}
+                                className="w-full h-full"
+                                title="Preview Skripsi"
+                              />
                             </div>
                           ) : (
                             <div className="text-xs text-muted-foreground py-20 text-center border border-dashed border-border rounded-xl bg-muted/5">
-                              {loadingPreview ? "Membuat preview Skripsi PDF..." : "Gagal memuat preview Skripsi PDF"}
+                              {loadingPreview
+                                ? "Membuat preview Skripsi PDF..."
+                                : "Gagal memuat preview Skripsi PDF"}
                             </div>
                           )
                         ) : (
@@ -906,6 +1273,36 @@ function AdminPengajuanComponent() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {selectedSub && (
+                <Button
+                  variant="outline"
+                  className="border-border rounded-xl cursor-pointer gap-1.5"
+                  onClick={() => {
+                    setIsDetailOpen(false);
+                    setEditNamaLengkap(selectedSub.namaLengkap);
+                    setEditNim(selectedSub.nim);
+                    setEditEmail(selectedSub.email || "");
+                    setEditNoTelp(selectedSub.noTelp || "");
+                    setEditAlamatLengkap(selectedSub.alamatLengkap || "");
+                    setEditProgramStudi(selectedSub.programStudi);
+                    setEditDosenPembimbing(
+                      selectedSub.dosenPembimbingPenguji || "",
+                    );
+                    setEditJudulSkripsi(selectedSub.judulSkripsi);
+                    setEditSumbanganBuku(
+                      selectedSub.sumbanganBuku || "tidak_ada",
+                    );
+                    setEditStatus(selectedSub.status);
+                    setEditCatatanAdmin(selectedSub.catatanAdmin || "");
+                    setEditKtmFile(null);
+                    setEditSkripsiFile(null);
+                    setEditErrors({});
+                    setIsEditOpen(true);
+                  }}
+                >
+                  <Pencil size={14} /> Edit
+                </Button>
+              )}
               <Button
                 variant="outline"
                 className="border-border rounded-xl cursor-pointer"
@@ -1045,6 +1442,674 @@ function AdminPengajuanComponent() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Fullscreen Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
+          <DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              Edit Pengajuan Bebas Pustaka
+            </DialogTitle>
+            <DialogDescription>
+              Ubah data pengajuan untuk kode tracking:{" "}
+              <span className="font-mono font-bold">
+                {selectedSub?.trackingCode}
+              </span>
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={handleEditSubmit}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            {/* Scrollable Content Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+                {/* Left Column: Data Diri & Akademik */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1.5">
+                    Identitas & Informasi Akademik
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editNamaLengkap">Nama Lengkap</Label>
+                    <Input
+                      id="editNamaLengkap"
+                      value={editNamaLengkap}
+                      onChange={(e) => setEditNamaLengkap(e.target.value)}
+                      className="bg-background/40"
+                    />
+                    {editErrors.namaLengkap && (
+                      <p className="text-xs text-rose-500">
+                        {editErrors.namaLengkap}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editNim">NIM / Stambuk</Label>
+                      <Input
+                        id="editNim"
+                        value={editNim}
+                        onChange={(e) => setEditNim(e.target.value)}
+                        className="bg-background/40"
+                      />
+                      {editErrors.nim && (
+                        <p className="text-xs text-rose-500">
+                          {editErrors.nim}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editProgramStudi">Program Studi</Label>
+                      <Select
+                        value={editProgramStudi}
+                        onValueChange={(val) => setEditProgramStudi(val)}
+                      >
+                        <SelectTrigger
+                          id="editProgramStudi"
+                          className="w-full bg-background/40 border-border text-foreground h-9 rounded-md"
+                        >
+                          <SelectValue placeholder="Pilih Program Studi" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                          <SelectGroup>
+                            {Object.entries(programStudiMap).map(
+                              ([slug, label]) => (
+                                <SelectItem key={slug} value={slug}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      {editErrors.programStudi && (
+                        <p className="text-xs text-rose-500">
+                          {editErrors.programStudi}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editEmail">Email</Label>
+                      <Input
+                        id="editEmail"
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className="bg-background/40"
+                      />
+                      {editErrors.email && (
+                        <p className="text-xs text-rose-500">
+                          {editErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editNoTelp">No. Telepon / WA</Label>
+                      <Input
+                        id="editNoTelp"
+                        value={editNoTelp}
+                        onChange={(e) => setEditNoTelp(e.target.value)}
+                        className="bg-background/40"
+                      />
+                      {editErrors.noTelp && (
+                        <p className="text-xs text-rose-500">
+                          {editErrors.noTelp}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editAlamatLengkap">Alamat Lengkap</Label>
+                    <Textarea
+                      id="editAlamatLengkap"
+                      rows={3}
+                      value={editAlamatLengkap}
+                      onChange={(e) => setEditAlamatLengkap(e.target.value)}
+                      className="bg-background/40"
+                    />
+                    {editErrors.alamatLengkap && (
+                      <p className="text-xs text-rose-500">
+                        {editErrors.alamatLengkap}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editDosenPembimbing">
+                      Dosen Pembimbing & Penguji
+                    </Label>
+                    <Textarea
+                      id="editDosenPembimbing"
+                      rows={2}
+                      value={editDosenPembimbing}
+                      onChange={(e) => setEditDosenPembimbing(e.target.value)}
+                      className="bg-background/40"
+                    />
+                    {editErrors.dosenPembimbing && (
+                      <p className="text-xs text-rose-500">
+                        {editErrors.dosenPembimbing}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editJudulSkripsi">Judul Karya Ilmiah</Label>
+                    <Textarea
+                      id="editJudulSkripsi"
+                      rows={3}
+                      value={editJudulSkripsi}
+                      onChange={(e) => setEditJudulSkripsi(e.target.value)}
+                      className="bg-background/40 font-mono text-xs"
+                    />
+                    {editErrors.judulSkripsi && (
+                      <p className="text-xs text-rose-500">
+                        {editErrors.judulSkripsi}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Status & Berkas */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1.5">
+                    Status & Unggah Berkas
+                  </h3>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="editStatus">Status Pengajuan</Label>
+                      <Select
+                        value={editStatus}
+                        onValueChange={(val) => setEditStatus(val as any)}
+                      >
+                        <SelectTrigger
+                          id="editStatus"
+                          className="w-full bg-background/40 border-border text-foreground h-9 rounded-md font-semibold"
+                        >
+                          <SelectValue placeholder="Pilih Status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                          <SelectGroup>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="diverifikasi">
+                              Terverifikasi
+                            </SelectItem>
+                            <SelectItem value="ditolak">Ditolak</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="editSumbanganBuku">Sumbangan Buku</Label>
+                      <Select
+                        value={editSumbanganBuku}
+                        onValueChange={(val) => setEditSumbanganBuku(val)}
+                      >
+                        <SelectTrigger
+                          id="editSumbanganBuku"
+                          className="w-full bg-background/40 border-border text-foreground h-9 rounded-md"
+                        >
+                          <SelectValue placeholder="Pilih Sumbangan Buku" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                          <SelectGroup>
+                            <SelectItem value="individu">Individu</SelectItem>
+                            <SelectItem value="kelompok">Kelompok</SelectItem>
+                            <SelectItem value="tidak_ada">Tidak Ada</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="editCatatanAdmin">
+                      Catatan Admin (Alasan jika ditolak)
+                    </Label>
+                    <Textarea
+                      id="editCatatanAdmin"
+                      rows={3}
+                      value={editCatatanAdmin}
+                      onChange={(e) => setEditCatatanAdmin(e.target.value)}
+                      placeholder="Masukkan catatan atau alasan jika pengajuan ditolak..."
+                      className="bg-background/40"
+                    />
+                  </div>
+
+                  {/* KTM File Input */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      Unggah KTM / Kartu Anggota Baru{" "}
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        (PDF, JPG, PNG - Opsional)
+                      </span>
+                    </Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-4 bg-background/10 transition-colors relative">
+                      <input
+                        type="file"
+                        id="editKtmFile"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setEditKtmFile(file);
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                      <span className="text-xs font-semibold text-muted-foreground text-center">
+                        {editKtmFile
+                          ? editKtmFile.name
+                          : "Klik atau seret file ke sini untuk mengganti KTM"}
+                      </span>
+                    </div>
+                    {selectedSub?.kartuMahasiswaOriginalName &&
+                      !editKtmFile && (
+                        <p className="text-[10px] text-muted-foreground">
+                          File saat ini:{" "}
+                          <span className="font-semibold">
+                            {selectedSub.kartuMahasiswaOriginalName}
+                          </span>
+                        </p>
+                      )}
+                    {editErrors.kartuMahasiswa && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        {editErrors.kartuMahasiswa}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Skripsi File Input */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      Unggah File Skripsi Baru{" "}
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        (PDF Only - Opsional)
+                      </span>
+                    </Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-4 bg-background/10 transition-colors relative">
+                      <input
+                        type="file"
+                        id="editSkripsiFile"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setEditSkripsiFile(file);
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                      <span className="text-xs font-semibold text-muted-foreground text-center">
+                        {editSkripsiFile
+                          ? editSkripsiFile.name
+                          : "Klik atau seret file ke sini untuk mengganti file Skripsi"}
+                      </span>
+                    </div>
+                    {selectedSub?.skripsiOriginalName && !editSkripsiFile && (
+                      <p className="text-[10px] text-muted-foreground">
+                        File saat ini:{" "}
+                        <span className="font-semibold">
+                          {selectedSub.skripsiOriginalName}
+                        </span>
+                      </p>
+                    )}
+                    {editErrors.skripsi && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        {editErrors.skripsi}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex sm:justify-end items-center border-t border-border/40 p-6 bg-muted/10 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-border rounded-xl cursor-pointer"
+                onClick={() => {
+                  setIsEditOpen(false);
+                  setSelectedSub(null);
+                }}
+                disabled={loadingAction}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="rounded-xl cursor-pointer"
+                disabled={loadingAction}
+              >
+                {loadingAction ? "Menyimpan..." : "Simpan Perubahan"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fullscreen Add Submission Dialog */}
+      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+        <DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
+          <DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Tambah Pengajuan Bebas Pustaka
+            </DialogTitle>
+            <DialogDescription>
+              Isi formulir berikut untuk menambahkan pengajuan bebas pustaka baru.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={handleAddSubmit}
+            className="flex-1 flex flex-col overflow-hidden"
+          >
+            {/* Scrollable Content Body */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-sm">
+                {/* Left Column: Data Diri & Akademik */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1.5">
+                    Identitas & Informasi Akademik
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="addNamaLengkap">Nama Lengkap</Label>
+                    <Input
+                      id="addNamaLengkap"
+                      value={addNamaLengkap}
+                      onChange={(e) => setAddNamaLengkap(e.target.value)}
+                      placeholder="Masukkan nama lengkap mahasiswa"
+                      className="bg-background/40"
+                    />
+                    {addErrors.namaLengkap && (
+                      <p className="text-xs text-rose-500">
+                        {addErrors.namaLengkap}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="addNim">NIM / Stambuk</Label>
+                      <Input
+                        id="addNim"
+                        value={addNim}
+                        onChange={(e) => setAddNim(e.target.value)}
+                        placeholder="Masukkan NIM"
+                        className="bg-background/40"
+                      />
+                      {addErrors.nim && (
+                        <p className="text-xs text-rose-500">
+                          {addErrors.nim}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="addProgramStudi">Program Studi</Label>
+                      <Select
+                        value={addProgramStudi}
+                        onValueChange={(val) => setAddProgramStudi(val)}
+                      >
+                        <SelectTrigger
+                          id="addProgramStudi"
+                          className="w-full bg-background/40 border-border text-foreground h-9 rounded-md"
+                        >
+                          <SelectValue placeholder="Pilih Program Studi" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                          <SelectGroup>
+                            {Object.entries(programStudiMap).map(
+                              ([slug, label]) => (
+                                <SelectItem key={slug} value={slug}>
+                                  {label}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      {addErrors.programStudi && (
+                        <p className="text-xs text-rose-500">
+                          {addErrors.programStudi}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="addEmail">Email</Label>
+                      <Input
+                        id="addEmail"
+                        type="email"
+                        value={addEmail}
+                        onChange={(e) => setAddEmail(e.target.value)}
+                        placeholder="email@example.com"
+                        className="bg-background/40"
+                      />
+                      {addErrors.email && (
+                        <p className="text-xs text-rose-500">
+                          {addErrors.email}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="addNoTelp">No. Telepon / WA</Label>
+                      <Input
+                        id="addNoTelp"
+                        value={addNoTelp}
+                        onChange={(e) => setAddNoTelp(e.target.value)}
+                        placeholder="08xxxxxxxxxx"
+                        className="bg-background/40"
+                      />
+                      {addErrors.noTelp && (
+                        <p className="text-xs text-rose-500">
+                          {addErrors.noTelp}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="addAlamatLengkap">Alamat Lengkap</Label>
+                    <Textarea
+                      id="addAlamatLengkap"
+                      rows={3}
+                      value={addAlamatLengkap}
+                      onChange={(e) => setAddAlamatLengkap(e.target.value)}
+                      placeholder="Masukkan alamat lengkap..."
+                      className="bg-background/40"
+                    />
+                    {addErrors.alamatLengkap && (
+                      <p className="text-xs text-rose-500">
+                        {addErrors.alamatLengkap}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="addDosenPembimbing">
+                      Dosen Pembimbing & Penguji
+                    </Label>
+                    <Textarea
+                      id="addDosenPembimbing"
+                      rows={2}
+                      value={addDosenPembimbing}
+                      onChange={(e) => setAddDosenPembimbing(e.target.value)}
+                      placeholder="Nama dosen pembimbing dan penguji..."
+                      className="bg-background/40"
+                    />
+                    {addErrors.dosenPembimbing && (
+                      <p className="text-xs text-rose-500">
+                        {addErrors.dosenPembimbing}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="addJudulSkripsi">Judul Karya Ilmiah</Label>
+                    <Textarea
+                      id="addJudulSkripsi"
+                      rows={3}
+                      value={addJudulSkripsi}
+                      onChange={(e) => setAddJudulSkripsi(e.target.value)}
+                      placeholder="Masukkan judul karya ilmiah..."
+                      className="bg-background/40 font-mono text-xs"
+                    />
+                    {addErrors.judulSkripsi && (
+                      <p className="text-xs text-rose-500">
+                        {addErrors.judulSkripsi}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right Column: Sumbangan Buku & Berkas */}
+                <div className="space-y-4">
+                  <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground border-b border-border/50 pb-1.5">
+                    Sumbangan Buku & Unggah Berkas
+                  </h3>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="addSumbanganBuku">Sumbangan Buku</Label>
+                    <Select
+                      value={addSumbanganBuku}
+                      onValueChange={(val) => setAddSumbanganBuku(val)}
+                    >
+                      <SelectTrigger
+                        id="addSumbanganBuku"
+                        className="w-full bg-background/40 border-border text-foreground h-9 rounded-md"
+                      >
+                        <SelectValue placeholder="Pilih Sumbangan Buku" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                        <SelectGroup>
+                          <SelectItem value="individu">Individu</SelectItem>
+                          <SelectItem value="kelompok">Kelompok</SelectItem>
+                          <SelectItem value="tidak_ada">Tidak Ada</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* KTM File Input */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      Unggah KTM / Kartu Anggota{" "}
+                      <span className="text-[10px] text-rose-500 font-semibold">
+                        *Wajib
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        (PDF, JPG, PNG - Maks 10MB)
+                      </span>
+                    </Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-4 bg-background/10 transition-colors relative">
+                      <input
+                        type="file"
+                        id="addKtmFile"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setAddKtmFile(file);
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                      <span className="text-xs font-semibold text-muted-foreground text-center">
+                        {addKtmFile
+                          ? addKtmFile.name
+                          : "Klik atau seret file KTM ke sini"}
+                      </span>
+                    </div>
+                    {addErrors.kartuMahasiswa && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        {addErrors.kartuMahasiswa}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Skripsi File Input */}
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-1">
+                      Unggah File Skripsi{" "}
+                      <span className="text-[10px] text-rose-500 font-semibold">
+                        *Wajib
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        (PDF Only - Maks 10MB)
+                      </span>
+                    </Label>
+                    <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-4 bg-background/10 transition-colors relative">
+                      <input
+                        type="file"
+                        id="addSkripsiFile"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          setAddSkripsiFile(file);
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                      <span className="text-xs font-semibold text-muted-foreground text-center">
+                        {addSkripsiFile
+                          ? addSkripsiFile.name
+                          : "Klik atau seret file Skripsi ke sini"}
+                      </span>
+                    </div>
+                    {addErrors.skripsi && (
+                      <p className="text-xs text-rose-500 mt-1">
+                        {addErrors.skripsi}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex sm:justify-end items-center border-t border-border/40 p-6 bg-muted/10 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="border-border rounded-xl cursor-pointer"
+                onClick={() => {
+                  setIsAddOpen(false);
+                }}
+                disabled={loadingAction}
+              >
+                Batal
+              </Button>
+              <Button
+                type="submit"
+                className="rounded-xl cursor-pointer gap-2"
+                disabled={loadingAction}
+              >
+                {loadingAction ? (
+                  "Menyimpan..."
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4" />
+                    Tambah Pengajuan
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
