@@ -279,7 +279,7 @@ function StatusComponent() {
                   className="border-border bg-card/65 dark:bg-card/35 backdrop-blur-md rounded-2xl overflow-hidden shadow-md"
                 >
                   {/* Top Header Row */}
-                  <div className="px-6 py-4 pt-0 border-b border-border/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/20">
+                  <div className="px-6 py-4 border-b border-border/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-muted/20">
                     <div className="space-y-1">
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Kode Tracking
@@ -294,7 +294,7 @@ function StatusComponent() {
                   </div>
 
                   {/* Form Content */}
-                  <CardContent className="p-6 space-y-5">
+                  <CardContent className=" space-y-5">
                     {/* Ditolak warning banner */}
                     {sub.status === "ditolak" && sub.catatanAdmin && (
                       <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-3 text-left">
