@@ -13,6 +13,7 @@ import {
   Menu,
   Shield,
   X,
+  BookPlus,
 } from "lucide-react";
 import { useState } from "react";
 import { ModeToggle } from "../../components/mode-toggle";
@@ -94,6 +95,22 @@ function AdminLayoutComponent() {
             >
               <ClipboardList size={18} />
               <span>Bebas Pustaka</span>
+            </Link>
+          </li>
+
+          <li className="admin-menu-item">
+            <Link
+              to="/admin/usulan-buku"
+              search={{}}
+              onClick={onLinkClick}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/60 transition-all font-medium w-full"
+              activeProps={{
+                className:
+                  "bg-indigo-500/10 text-indigo-650 dark:text-indigo-400 border-l-2 border-indigo-500 rounded-l-none font-semibold",
+              }}
+            >
+              <BookPlus size={18} />
+              <span>Usulan Buku</span>
             </Link>
           </li>
         </ul>

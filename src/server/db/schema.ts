@@ -81,3 +81,9 @@ export const submissions = mysqlTable("submissions", {
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
 });
+
+export const bookSuggestions = mysqlTable("book_suggestions", {
+	id: int("id").primaryKey().autoincrement(),
+	judulBuku: varchar("judul_buku", { length: 500 }).notNull(),
+	createdAt: timestamp("created_at").notNull().defaultNow(),
+});

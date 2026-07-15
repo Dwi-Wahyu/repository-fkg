@@ -9,14 +9,21 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UsulanBukuRouteImport } from './routes/usulan-buku'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AjukanRouteImport } from './routes/ajukan'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminUsulanBukuRouteImport } from './routes/admin/usulan-buku'
 import { Route as AdminPengajuanRouteImport } from './routes/admin/pengajuan'
 
+const UsulanBukuRoute = UsulanBukuRouteImport.update({
+  id: '/usulan-buku',
+  path: '/usulan-buku',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StatusRoute = StatusRouteImport.update({
   id: '/status',
   path: '/status',
@@ -47,6 +54,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminUsulanBukuRoute = AdminUsulanBukuRouteImport.update({
+  id: '/usulan-buku',
+  path: '/usulan-buku',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminPengajuanRoute = AdminPengajuanRouteImport.update({
   id: '/pengajuan',
   path: '/pengajuan',
@@ -59,7 +71,9 @@ export interface FileRoutesByFullPath {
   '/ajukan': typeof AjukanRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
+  '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
+  '/admin/usulan-buku': typeof AdminUsulanBukuRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -67,7 +81,9 @@ export interface FileRoutesByTo {
   '/ajukan': typeof AjukanRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
+  '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
+  '/admin/usulan-buku': typeof AdminUsulanBukuRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -77,7 +93,9 @@ export interface FileRoutesById {
   '/ajukan': typeof AjukanRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
+  '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
+  '/admin/usulan-buku': typeof AdminUsulanBukuRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -88,10 +106,20 @@ export interface FileRouteTypes {
     | '/ajukan'
     | '/login'
     | '/status'
+    | '/usulan-buku'
     | '/admin/pengajuan'
+    | '/admin/usulan-buku'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ajukan' | '/login' | '/status' | '/admin/pengajuan' | '/admin'
+  to:
+    | '/'
+    | '/ajukan'
+    | '/login'
+    | '/status'
+    | '/usulan-buku'
+    | '/admin/pengajuan'
+    | '/admin/usulan-buku'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -99,7 +127,9 @@ export interface FileRouteTypes {
     | '/ajukan'
     | '/login'
     | '/status'
+    | '/usulan-buku'
     | '/admin/pengajuan'
+    | '/admin/usulan-buku'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -109,10 +139,18 @@ export interface RootRouteChildren {
   AjukanRoute: typeof AjukanRoute
   LoginRoute: typeof LoginRoute
   StatusRoute: typeof StatusRoute
+  UsulanBukuRoute: typeof UsulanBukuRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/usulan-buku': {
+      id: '/usulan-buku'
+      path: '/usulan-buku'
+      fullPath: '/usulan-buku'
+      preLoaderRoute: typeof UsulanBukuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/status': {
       id: '/status'
       path: '/status'
@@ -155,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/usulan-buku': {
+      id: '/admin/usulan-buku'
+      path: '/usulan-buku'
+      fullPath: '/admin/usulan-buku'
+      preLoaderRoute: typeof AdminUsulanBukuRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/pengajuan': {
       id: '/admin/pengajuan'
       path: '/pengajuan'
@@ -167,11 +212,13 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteRouteChildren {
   AdminPengajuanRoute: typeof AdminPengajuanRoute
+  AdminUsulanBukuRoute: typeof AdminUsulanBukuRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminPengajuanRoute: AdminPengajuanRoute,
+  AdminUsulanBukuRoute: AdminUsulanBukuRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -185,6 +232,7 @@ const rootRouteChildren: RootRouteChildren = {
   AjukanRoute: AjukanRoute,
   LoginRoute: LoginRoute,
   StatusRoute: StatusRoute,
+  UsulanBukuRoute: UsulanBukuRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

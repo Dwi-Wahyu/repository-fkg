@@ -22,7 +22,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -129,6 +129,60 @@ function AdminPengajuanComponent() {
   const [rejectReason, setRejectReason] = useState("");
   const [actionId, setActionId] = useState<number | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // File Previews states
+  const [ktmPreviewUrl, setKtmPreviewUrl] = useState<string | null>(null);
+  const [skripsiPreviewUrl, setSkripsiPreviewUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+
+  useEffect(() => {
+    if (!isDetailOpen || !selectedSub) {
+      if (ktmPreviewUrl) window.URL.revokeObjectURL(ktmPreviewUrl);
+      if (skripsiPreviewUrl) window.URL.revokeObjectURL(skripsiPreviewUrl);
+      setKtmPreviewUrl(null);
+      setSkripsiPreviewUrl(null);
+      return;
+    }
+
+    const fetchPreviews = async () => {
+      setLoadingPreview(true);
+      try {
+        // Fetch KTM
+        try {
+          const res = await downloadSubmissionFileFn({ data: { id: selectedSub.id, fileType: "kartu" } });
+          const binaryString = window.atob(res.base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: res.mimeType });
+          const url = window.URL.createObjectURL(blob);
+          setKtmPreviewUrl(url);
+        } catch (err) {
+          console.error("Gagal load preview KTM", err);
+        }
+
+        // Fetch Skripsi
+        try {
+          const res = await downloadSubmissionFileFn({ data: { id: selectedSub.id, fileType: "skripsi" } });
+          const binaryString = window.atob(res.base64);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: res.mimeType });
+          const url = window.URL.createObjectURL(blob);
+          setSkripsiPreviewUrl(url);
+        } catch (err) {
+          console.error("Gagal load preview Skripsi", err);
+        }
+      } finally {
+        setLoadingPreview(false);
+      }
+    };
+
+    fetchPreviews();
+  }, [isDetailOpen, selectedSub]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -571,9 +625,10 @@ function AdminPengajuanComponent() {
       </div>
 
       {/* Large Detail Dialog */}
+      {/* Large Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-xl bg-card border-border shadow-2xl overflow-y-auto max-h-[85vh] rounded-3xl">
-          <DialogHeader>
+        <DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
+          <DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               Detail Pengajuan Bebas Pustaka
             </DialogTitle>
@@ -585,201 +640,257 @@ function AdminPengajuanComponent() {
             </DialogDescription>
           </DialogHeader>
 
-          {selectedSub && (
-            <div className="space-y-6 pt-4 text-sm">
-              {/* Status banner */}
-              <div className="flex justify-between items-center bg-muted/40 p-4 rounded-xl border border-border/60">
-                <span className="font-semibold">Status Saat Ini</span>
-                {getStatusBadge(selectedSub.status)}
-              </div>
-
-              {selectedSub.status === "ditolak" && selectedSub.catatanAdmin && (
-                <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-2.5">
-                  <XCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <strong className="text-xs text-rose-950 dark:text-rose-300 font-bold block">
-                      Alasan Penolakan:
-                    </strong>
-                    <p className="text-xs text-rose-800 dark:text-rose-400 whitespace-pre-wrap leading-relaxed">
-                      {selectedSub.catatanAdmin}
-                    </p>
+          {/* Scrollable Content Body */}
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            {selectedSub && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-sm">
+                {/* Left Column: Identitas & Karya Ilmiah */}
+                <div className="lg:col-span-5 space-y-6">
+                  {/* Status banner */}
+                  <div className="flex justify-between items-center bg-muted/40 p-4 rounded-xl border border-border/60">
+                    <span className="font-semibold">Status Saat Ini</span>
+                    {getStatusBadge(selectedSub.status)}
                   </div>
-                </div>
-              )}
 
-              {/* Student Identitas Section */}
-              <div className="space-y-3">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
-                  <User size={13} /> Identitas Mahasiswa
-                </h3>
-                <div className="grid grid-cols-3 gap-y-2">
-                  <span className="text-muted-foreground text-xs">
-                    Nama Lengkap
-                  </span>
-                  <span className="col-span-2 font-semibold">
-                    {selectedSub.namaLengkap}
-                  </span>
+                  {selectedSub.status === "ditolak" && selectedSub.catatanAdmin && (
+                    <div className="bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl flex items-start gap-2.5">
+                      <XCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                      <div className="space-y-1">
+                        <strong className="text-xs text-rose-950 dark:text-rose-300 font-bold block">
+                          Alasan Penolakan:
+                        </strong>
+                        <p className="text-xs text-rose-800 dark:text-rose-400 whitespace-pre-wrap leading-relaxed">
+                          {selectedSub.catatanAdmin}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
-                  <span className="text-muted-foreground text-xs">
-                    Stambuk/NIM
-                  </span>
-                  <span className="col-span-2 font-mono font-semibold">
-                    {selectedSub.nim}
-                  </span>
+                  {/* Student Identitas Section */}
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
+                      <User size={13} /> Identitas Mahasiswa
+                    </h3>
+                    <div className="space-y-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Nama Lengkap</span>
+                        <span className="font-semibold text-foreground text-sm">{selectedSub.namaLengkap}</span>
+                      </div>
 
-                  <span className="text-muted-foreground text-xs">
-                    Program Studi
-                  </span>
-                  <span className="col-span-2">
-                    {programStudiMap[
-                      selectedSub.programStudi as keyof typeof programStudiMap
-                    ] || selectedSub.programStudi}
-                  </span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Stambuk / NIM</span>
+                        <span className="font-mono font-semibold text-foreground text-sm">{selectedSub.nim}</span>
+                      </div>
 
-                  <span className="text-muted-foreground text-xs">Email</span>
-                  <span className="col-span-2 flex items-center gap-1.5">
-                    <Mail size={12} className="text-muted-foreground" />
-                    {selectedSub.email}
-                  </span>
-
-                  <span className="text-muted-foreground text-xs">
-                    No. Telepon
-                  </span>
-                  <span className="col-span-2 flex items-center gap-1.5">
-                    <Phone size={12} className="text-muted-foreground" />
-                    {selectedSub.noTelp}
-                  </span>
-
-                  <span className="text-muted-foreground text-xs">Alamat</span>
-                  <span className="col-span-2 flex items-start gap-1">
-                    <MapPin
-                      size={12}
-                      className="text-muted-foreground shrink-0 mt-0.5"
-                    />
-                    <span>{selectedSub.alamatLengkap}</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Academic Karya Ilmiah Section */}
-              <div className="space-y-3">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
-                  <BookOpen size={13} /> Karya Ilmiah & Studi
-                </h3>
-                <div className="space-y-3">
-                  <div className="grid grid-cols-3 gap-y-2">
-                    <span className="text-muted-foreground text-xs">
-                      Dosen Penguji
-                    </span>
-                    <span className="col-span-2 whitespace-pre-wrap">
-                      {selectedSub.dosenPembimbingPenguji}
-                    </span>
-
-                    <span className="text-muted-foreground text-xs">
-                      Sumbangan Buku
-                    </span>
-                    <span className="col-span-2 capitalize">
-                      {selectedSub.sumbanganBuku?.replace("_", " ")}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-muted-foreground text-xs block">
-                      Judul Karya Ilmiah
-                    </span>
-                    <p className="text-xs bg-muted/20 border border-border/40 p-2.5 rounded-lg italic font-medium leading-relaxed">
-                      "{selectedSub.judulSkripsi}"
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Document Download Section */}
-              <div className="space-y-3">
-                <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
-                  <Download size={13} /> Berkas Persyaratan
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                  {/* KTM Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
-                    onClick={() => handleDownloadFile(selectedSub.id, "kartu")}
-                  >
-                    <div className="flex items-center gap-2 text-left truncate pr-2">
-                      <FileText
-                        size={15}
-                        className="text-indigo-500 shrink-0"
-                      />
-                      <div className="truncate">
-                        <span className="text-[10px] text-muted-foreground block leading-none">
-                          Kartu Mahasiswa
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Program Studi</span>
+                        <span className="font-semibold text-foreground text-sm">
+                          {programStudiMap[
+                            selectedSub.programStudi as keyof typeof programStudiMap
+                          ] || selectedSub.programStudi}
                         </span>
-                        <span className="text-xs truncate font-semibold block mt-0.5">
-                          {selectedSub.kartuMahasiswaOriginalName || "KTM.pdf"}
+                      </div>
+
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Email</span>
+                        <span className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                          <Mail size={12} className="text-muted-foreground" />
+                          {selectedSub.email}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">No. Telepon</span>
+                        <span className="font-semibold text-foreground text-sm flex items-center gap-1.5">
+                          <Phone size={12} className="text-muted-foreground" />
+                          {selectedSub.noTelp}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Alamat Lengkap</span>
+                        <span className="font-semibold text-foreground text-sm flex items-start gap-1">
+                          <MapPin
+                            size={12}
+                            className="text-muted-foreground shrink-0 mt-0.5"
+                          />
+                          <span>{selectedSub.alamatLengkap}</span>
                         </span>
                       </div>
                     </div>
-                    <Download
-                      size={14}
-                      className="text-muted-foreground shrink-0"
-                    />
-                  </Button>
+                  </div>
 
-                  {/* Skripsi Button */}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
-                    onClick={() =>
-                      handleDownloadFile(selectedSub.id, "skripsi")
-                    }
-                  >
-                    <div className="flex items-center gap-2 text-left truncate pr-2">
-                      <BookOpen
-                        size={15}
-                        className="text-indigo-500 shrink-0"
-                      />
-                      <div className="truncate">
-                        <span className="text-[10px] text-muted-foreground block leading-none">
-                          File Skripsi (TTD)
-                        </span>
-                        <span className="text-xs truncate font-semibold block mt-0.5">
-                          {selectedSub.skripsiOriginalName || "Skripsi.pdf"}
+                  {/* Academic Karya Ilmiah Section */}
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
+                      <BookOpen size={13} /> Karya Ilmiah & Studi
+                    </h3>
+                    <div className="space-y-3.5">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Dosen Pembimbing & Penguji</span>
+                        <span className="font-semibold text-foreground text-sm whitespace-pre-wrap">
+                          {selectedSub.dosenPembimbingPenguji}
                         </span>
                       </div>
+
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-muted-foreground text-xs font-semibold">Sumbangan Buku</span>
+                        <span className="font-semibold text-foreground text-sm capitalize">
+                          {selectedSub.sumbanganBuku?.replace("_", " ")}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-muted-foreground text-xs font-semibold">Judul Karya Ilmiah</span>
+                        <p className="text-xs bg-muted/20 border border-border/40 p-2.5 rounded-lg italic font-medium leading-relaxed text-foreground">
+                          "{selectedSub.judulSkripsi}"
+                        </p>
+                      </div>
                     </div>
-                    <Download
-                      size={14}
-                      className="text-muted-foreground shrink-0"
-                    />
-                  </Button>
+                  </div>
+
+                  {/* Verification Info Footer if processed */}
+                  {selectedSub.status !== "pending" && selectedSub.verifiedAt && (
+                    <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 pt-3 border-t border-border/40">
+                      <Calendar size={11} />
+                      <span>
+                        Diproses pada{" "}
+                        {new Date(selectedSub.verifiedAt).toLocaleDateString(
+                          "id-ID",
+                          {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Berkas Persyaratan & Previews */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="space-y-3">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 border-b border-border/50 pb-1.5">
+                      <Download size={13} /> Berkas Persyaratan
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {/* KTM Button */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
+                        onClick={() => handleDownloadFile(selectedSub.id, "kartu")}
+                      >
+                        <div className="flex items-center gap-2 text-left truncate pr-2">
+                          <FileText
+                            size={15}
+                            className="text-indigo-500 shrink-0"
+                          />
+                          <div className="truncate">
+                            <span className="text-[10px] text-muted-foreground block leading-none">
+                              Kartu Mahasiswa
+                            </span>
+                            <span className="text-xs truncate font-semibold block mt-0.5">
+                              {selectedSub.kartuMahasiswaOriginalName || "KTM.pdf"}
+                            </span>
+                          </div>
+                        </div>
+                        <Download
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                      </Button>
+
+                      {/* Skripsi Button */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
+                        onClick={() =>
+                          handleDownloadFile(selectedSub.id, "skripsi")
+                        }
+                      >
+                        <div className="flex items-center gap-2 text-left truncate pr-2">
+                          <BookOpen
+                            size={15}
+                            className="text-indigo-500 shrink-0"
+                          />
+                          <div className="truncate">
+                            <span className="text-[10px] text-muted-foreground block leading-none">
+                              File Skripsi (TTD)
+                            </span>
+                            <span className="text-xs truncate font-semibold block mt-0.5">
+                              {selectedSub.skripsiOriginalName || "Skripsi.pdf"}
+                            </span>
+                          </div>
+                        </div>
+                        <Download
+                          size={14}
+                          className="text-muted-foreground shrink-0"
+                        />
+                      </Button>
+                    </div>
+
+                    {/* Previews group */}
+                    <div className="space-y-5 pt-3">
+                      {/* KTM Preview */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-muted-foreground block">
+                          Preview Kartu Mahasiswa:
+                        </span>
+                        {selectedSub.kartuMahasiswaOriginalName?.toLowerCase().endsWith(".pdf") ? (
+                          ktmPreviewUrl ? (
+                            <div className="w-full h-96 rounded-xl border border-border overflow-hidden bg-muted/10 shadow-inner">
+                              <iframe src={`${ktmPreviewUrl}#toolbar=0`} className="w-full h-full" title="Preview KTM" />
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground py-12 text-center border border-dashed border-border rounded-xl bg-muted/5">
+                              {loadingPreview ? "Membuat preview KTM PDF..." : "Gagal memuat preview KTM PDF"}
+                            </div>
+                          )
+                        ) : ktmPreviewUrl ? (
+                          <div className="w-full h-96 rounded-xl border border-border overflow-hidden bg-muted/10 flex items-center justify-center p-3 shadow-inner">
+                            <img src={ktmPreviewUrl} className="max-w-full max-h-88 object-contain rounded-lg shadow-sm" alt="KTM Preview" />
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground py-12 text-center border border-dashed border-border rounded-xl bg-muted/5">
+                            {loadingPreview ? "Memuat preview KTM..." : "Gagal memuat preview KTM"}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Skripsi Preview */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-muted-foreground block">
+                          Preview File Skripsi (PDF):
+                        </span>
+                        {selectedSub.skripsiOriginalName?.toLowerCase().endsWith(".pdf") ? (
+                          skripsiPreviewUrl ? (
+                            <div className="w-full h-[500px] rounded-xl border border-border overflow-hidden bg-muted/10 shadow-inner">
+                              <iframe src={`${skripsiPreviewUrl}#toolbar=0`} className="w-full h-full" title="Preview Skripsi" />
+                            </div>
+                          ) : (
+                            <div className="text-xs text-muted-foreground py-20 text-center border border-dashed border-border rounded-xl bg-muted/5">
+                              {loadingPreview ? "Membuat preview Skripsi PDF..." : "Gagal memuat preview Skripsi PDF"}
+                            </div>
+                          )
+                        ) : (
+                          <div className="text-xs text-muted-foreground py-20 text-center border border-dashed border-border rounded-xl bg-muted/5">
+                            File skripsi bukan berformat PDF
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
+            )}
+          </div>
 
-              {/* Verification Info Footer if processed */}
-              {selectedSub.status !== "pending" && selectedSub.verifiedAt && (
-                <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 pt-2 border-t border-border/40">
-                  <Calendar size={11} />
-                  <span>
-                    Diproses pada{" "}
-                    {new Date(selectedSub.verifiedAt).toLocaleDateString(
-                      "id-ID",
-                      {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      },
-                    )}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="flex sm:justify-between items-center border-t border-border/40 pt-4 mt-6 gap-2">
+          <DialogFooter className="flex sm:justify-between items-center border-t border-border/40 p-6 bg-muted/10 gap-2">
             <div>
               {selectedSub && selectedSub.status === "pending" && (
                 <Button

@@ -98,7 +98,7 @@ function RootComponent() {
 
 	const isAdminRoute = location.pathname.startsWith("/admin");
 	const isAuthRoute = location.pathname === "/login";
-	const isPublicRoute = ["/", "/ajukan", "/status"].includes(location.pathname);
+	const isPublicRoute = ["/", "/ajukan", "/status", "/usulan-buku"].includes(location.pathname);
 
 	const handleLogout = async () => {
 		await logoutFn();

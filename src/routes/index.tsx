@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, LayoutDashboard, Search, Shield } from "lucide-react";
+import { FileText, LayoutDashboard, Search, Shield, BookPlus } from "lucide-react";
 import { ModeToggle } from "../components/mode-toggle";
 import { Button } from "../components/ui/button";
 import { getSessionFn } from "../server/authFunctions";
@@ -71,7 +71,7 @@ function HomeComponent() {
           dan pantau status verifikasi secara real-time.
         </p>
 
-        {/* Two Main CTA Buttons */}
+        {/* Three Main CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 max-w-md mx-auto sm:max-w-none">
           <Button
             asChild
@@ -93,6 +93,18 @@ function HomeComponent() {
             <Link to="/status" search={{}}>
               <Search className="mr-2.5 h-5 w-5" />
               Cek Status Pengajuan
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            size="lg"
+            variant="outline"
+            className="h-14 px-8 text-base border-border bg-card/65 dark:bg-card/35 backdrop-blur-sm font-semibold rounded-2xl cursor-pointer"
+          >
+            <Link to="/usulan-buku">
+              <BookPlus className="mr-2.5 h-5 w-5" />
+              Usulkan Buku
             </Link>
           </Button>
         </div>
