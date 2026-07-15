@@ -34,4 +34,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 sqlite.db
-uploads/
+
+!uploads/kartu-mahasiswa/.gitkeep
+!uploads/kartu-mahasiswa/.gitignore
+
+!uploads/skripsi/.gitkeep
+!uploads/skripsi/.gitignore
