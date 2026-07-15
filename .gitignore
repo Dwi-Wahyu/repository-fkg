@@ -40,3 +40,5 @@ sqlite.db
 
 !uploads/skripsi/.gitkeep
 !uploads/skripsi/.gitignore
+
+rsbuild.config.ts
