@@ -38,10 +38,10 @@ export const submissions = mysqlTable("submissions", {
 	trackingCode: varchar("tracking_code", { length: 20 }).notNull().unique(),
 	namaLengkap: varchar("nama_lengkap", { length: 255 }).notNull(),
 	nim: varchar("nim", { length: 50 }).notNull(),
-	dosenPembimbingPenguji: text("dosen_pembimbing_penguji").notNull(),
+	dosenPembimbingPenguji: text("dosen_pembimbing_penguji"),
 	judulSkripsi: varchar("judul_skripsi", { length: 500 }).notNull(),
-	alamatLengkap: text("alamat_lengkap").notNull(),
-	noTelp: varchar("no_telp", { length: 30 }).notNull(),
+	alamatLengkap: text("alamat_lengkap"),
+	noTelp: varchar("no_telp", { length: 30 }),
 	programStudi: mysqlEnum("program_studi", [
 		"s1_gigi",
 		"profesi_gigi",
@@ -56,10 +56,10 @@ export const submissions = mysqlTable("submissions", {
 		"s2_gigi",
 		"s3_gigi",
 	]).notNull(),
-	email: varchar("email", { length: 255 }).notNull(),
+	email: varchar("email", { length: 255 }),
 	kartuMahasiswaPath: varchar("kartu_mahasiswa_path", {
 		length: 500,
-	}).notNull(),
+	}),
 	kartuMahasiswaOriginalName: varchar("kartu_mahasiswa_original_name", {
 		length: 255,
 	}),
@@ -73,6 +73,9 @@ export const submissions = mysqlTable("submissions", {
 	status: mysqlEnum("status", ["pending", "diverifikasi", "ditolak"])
 		.notNull()
 		.default("pending"),
+	sourceType: mysqlEnum("source_type", ["form", "import_legacy"])
+		.notNull()
+		.default("form"),
 	catatanAdmin: text("catatan_admin"),
 	verifiedByUserId: int("verified_by_user_id").references(() => users.id, {
 		onDelete: "set null",

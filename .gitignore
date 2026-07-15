@@ -43,3 +43,7 @@ sqlite.db
 
 rsbuild.config.ts
 ecosystem.config.cjs
+
+# migration assets
+/source-pdf/
+/staging/
