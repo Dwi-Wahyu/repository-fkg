@@ -1,0 +1,29 @@
+# Dev dependencies and build artifacts that get re-created inside the image
+node_modules
+dist
+.tanstack
+
+# Logs
+logs
+*.log
+
+# Local env files
+.env*
+!.env.example
+
+# Dev tools
+.vscode
+.idea
+.cache
+*.tsbuildinfo
+
+# OS
+.DS_Store
+
+# Docker files themselves (not needed in build context)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# PM2
+ecosystem.config.js
