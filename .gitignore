@@ -42,3 +42,4 @@ sqlite.db
 !uploads/skripsi/.gitignore
 
 rsbuild.config.ts
+ecosystem.config.cjs
