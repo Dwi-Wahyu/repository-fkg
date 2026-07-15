@@ -181,18 +181,6 @@ function LoginComponent() {
             >
               {loading ? "Memproses..." : "Masuk"}
             </Button>
-            <div className="w-full border-t border-border pt-4 text-center">
-              <p className="text-muted-foreground text-xs mb-2">
-                Kredensial Admin default:
-              </p>
-              <div className="inline-block text-[11px] text-muted-foreground bg-card/20 py-1.5 px-3 rounded border border-border">
-                <span>
-                  Username: <strong className="text-foreground">admin</strong>{" "}
-                  &nbsp;|&nbsp; Password:{" "}
-                  <strong className="text-foreground">admin123</strong>
-                </span>
-              </div>
-            </div>
           </CardFooter>
         </form>
       </Card>
