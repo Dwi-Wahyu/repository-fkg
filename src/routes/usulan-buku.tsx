@@ -214,9 +214,8 @@ function UsulanBukuComponent() {
             <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <strong>Batas Harian Tercapai:</strong> Anda sudah mengajukan
-              usulan buku dari browser ini hari ini. Silakan coba lagi besok
-              setelah <strong>{unlockTime}</strong> (sekitar {remainingTimeStr}{" "}
-              lagi).
+              usulan buku hari ini. Silakan coba lagi besok setelah{" "}
+              <strong>{unlockTime}</strong> (sekitar {remainingTimeStr} lagi).
             </div>
           </div>
         )}
@@ -226,7 +225,7 @@ function UsulanBukuComponent() {
           <CardHeader>
             <CardTitle className="text-lg">Kirim Usulan Judul Buku</CardTitle>
             <CardDescription>
-              Satu usulan per 24 jam diperbolehkan per perangkat browser.
+              Satu usulan diperbolehkan per setiap 24 jam.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -262,7 +261,10 @@ function UsulanBukuComponent() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="penerbit">
-                  Penerbit <span className="text-muted-foreground text-xs">(Opsional)</span>
+                  Penerbit{" "}
+                  <span className="text-muted-foreground text-xs">
+                    (Opsional)
+                  </span>
                 </Label>
                 <Input
                   id="penerbit"
@@ -276,7 +278,10 @@ function UsulanBukuComponent() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="coverBuku" className="flex items-center gap-1">
-                  Cover Buku <span className="text-muted-foreground text-xs">(Opsional, Gambar Maks 5 MB)</span>
+                  Cover Buku{" "}
+                  <span className="text-muted-foreground text-xs">
+                    (Opsional, Gambar Maks 5 MB)
+                  </span>
                 </Label>
                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-6 bg-background/10 transition-colors relative">
                   <input
@@ -344,7 +349,7 @@ function UsulanBukuComponent() {
               Pengusulan Anda
             </CardTitle>
             <CardDescription>
-              Daftar usulan buku yang pernah Anda kirimkan dari perangkat ini.
+              Daftar usulan buku yang pernah Anda.
             </CardDescription>
           </CardHeader>
           <CardContent>

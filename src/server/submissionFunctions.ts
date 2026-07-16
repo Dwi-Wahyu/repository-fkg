@@ -7,7 +7,7 @@ import { getUserFromSession } from "./auth";
 import { db } from "./db";
 import { programStudiMap, submissions } from "./db/schema";
 
-// Yup validation schema for texts
+// Yup validation schema for texts (full — used by public mahasiswa form)
 export const submissionValidationSchema = yup.object().shape({
 	namaLengkap: yup
 		.string()
@@ -53,6 +53,48 @@ export const submissionValidationSchema = yup.object().shape({
 		.default("tidak_ada"),
 });
 
+// Relaxed Yup schema for admin — only Nama Lengkap is required text field
+export const adminSubmissionValidationSchema = yup.object().shape({
+	namaLengkap: yup
+		.string()
+		.required("Nama Lengkap wajib diisi")
+		.min(3, "Minimal 3 karakter"),
+	nim: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v))
+		.test("nim-format", "NIM hanya boleh huruf, angka, titik, strip, dan slash", (v) =>
+			!v || /^[a-zA-Z0-9.\-/]+$/.test(v),
+		),
+	dosenPembimbingPenguji: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
+	judulSkripsi: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
+	alamatLengkap: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
+	noTelp: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v))
+		.test("telp-format", "Format nomor telepon tidak valid", (v) =>
+			!v || /^[0-9+\s\-()]+$/.test(v),
+		),
+	programStudi: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v))
+		.test("prodi-valid", "Program Studi tidak terdaftar", (v) =>
+			!v || Object.keys(programStudiMap).includes(v),
+		),
+	email: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v))
+		.email("Format email tidak valid"),
+	sumbanganBuku: yup
+		.string()
+		.oneOf(["individu", "kelompok", "tidak_ada"])
+		.optional()
+		.default("tidak_ada"),
+});
+
 async function ensureUploadDirs() {
 	const base = join(process.cwd(), "uploads");
 	await mkdir(join(base, "kartu-mahasiswa"), { recursive: true });
@@ -67,27 +109,38 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 		}
 		await ensureUploadDirs();
 
+		// Check if this is an admin-created submission
+		const isAdminFlag = data.get("isAdmin") === "true";
+		let isAdmin = false;
+		if (isAdminFlag) {
+			const user = await getUserFromSession();
+			if (user && user.role === "admin") {
+				isAdmin = true;
+			}
+		}
+
 		const namaLengkap = data.get("namaLengkap") as string;
-		const nim = data.get("nim") as string;
-		const dosenPembimbingPenguji = data.get("dosenPembimbingPenguji") as string;
-		const judulSkripsi = data.get("judulSkripsi") as string;
-		const alamatLengkap = data.get("alamatLengkap") as string;
-		const noTelp = data.get("noTelp") as string;
-		const programStudi = data.get("programStudi") as any;
-		const email = data.get("email") as string;
+		const nim = (data.get("nim") as string) || "";
+		const dosenPembimbingPenguji = (data.get("dosenPembimbingPenguji") as string) || "";
+		const judulSkripsi = (data.get("judulSkripsi") as string) || "";
+		const alamatLengkap = (data.get("alamatLengkap") as string) || "";
+		const noTelp = (data.get("noTelp") as string) || "";
+		const programStudi = (data.get("programStudi") as any) || "";
+		const email = (data.get("email") as string) || "";
 		const sumbanganBuku = (data.get("sumbanganBuku") || "tidak_ada") as any;
 
-		// Validate texts
-		await submissionValidationSchema.validate(
+		// Validate texts — use relaxed schema for admin
+		const schema = isAdmin ? adminSubmissionValidationSchema : submissionValidationSchema;
+		await schema.validate(
 			{
 				namaLengkap,
-				nim,
-				dosenPembimbingPenguji,
-				judulSkripsi,
-				alamatLengkap,
-				noTelp,
-				programStudi,
-				email,
+				nim: nim || undefined,
+				dosenPembimbingPenguji: dosenPembimbingPenguji || undefined,
+				judulSkripsi: judulSkripsi || undefined,
+				alamatLengkap: alamatLengkap || undefined,
+				noTelp: noTelp || undefined,
+				programStudi: programStudi || undefined,
+				email: email || undefined,
 				sumbanganBuku,
 			},
 			{ abortEarly: false },
@@ -97,17 +150,23 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 		const kartuMahasiswa = data.get("kartuMahasiswa") as File | null;
 		const skripsi = data.get("skripsi") as File | null;
 
-		if (!kartuMahasiswa || kartuMahasiswa.size === 0) {
-			throw new Error("Kartu Mahasiswa wajib diunggah");
+		// KTM: required for public, optional for admin
+		if (!isAdmin) {
+			if (!kartuMahasiswa || kartuMahasiswa.size === 0) {
+				throw new Error("Kartu Mahasiswa wajib diunggah");
+			}
 		}
-		if (kartuMahasiswa.size > 10 * 1024 * 1024) {
-			throw new Error("Ukuran file Kartu Mahasiswa maksimal 10 MB");
-		}
-		const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
-		if (!validKMTypes.includes(kartuMahasiswa.type)) {
-			throw new Error("Format Kartu Mahasiswa harus PDF, JPG, atau PNG");
+		if (kartuMahasiswa && kartuMahasiswa.size > 0) {
+			if (kartuMahasiswa.size > 10 * 1024 * 1024) {
+				throw new Error("Ukuran file Kartu Mahasiswa maksimal 10 MB");
+			}
+			const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
+			if (!validKMTypes.includes(kartuMahasiswa.type)) {
+				throw new Error("Format Kartu Mahasiswa harus PDF, JPG, atau PNG");
+			}
 		}
 
+		// Skripsi: always required
 		if (!skripsi || skripsi.size === 0) {
 			throw new Error("File Skripsi wajib diunggah");
 		}
@@ -133,43 +192,50 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 			return "bin";
 		};
 
-		const kmExt = getExt(kartuMahasiswa.name, kartuMahasiswa.type);
 		const skripsiExt = getExt(skripsi.name, skripsi.type);
-
-		const kmFileName = `${trackingCode}-kartu-${timestamp}.${kmExt}`;
 		const skripsiFileName = `${trackingCode}-skripsi-${timestamp}.${skripsiExt}`;
-
-		const kmRelPath = join("uploads", "kartu-mahasiswa", kmFileName);
 		const skripsiRelPath = join("uploads", "skripsi", skripsiFileName);
-
-		const kmAbsPath = join(process.cwd(), kmRelPath);
 		const skripsiAbsPath = join(process.cwd(), skripsiRelPath);
 
-		// Write files to local storage
-		const kmArrayBuffer = await kartuMahasiswa.arrayBuffer();
-		await writeFile(kmAbsPath, Buffer.from(kmArrayBuffer));
-
+		// Write skripsi file
 		const skripsiArrayBuffer = await skripsi.arrayBuffer();
 		await writeFile(skripsiAbsPath, Buffer.from(skripsiArrayBuffer));
 
+		// Handle KTM file (optional for admin)
+		let kmRelPath: string | null = null;
+		let kmOriginalName: string | null = null;
+		if (kartuMahasiswa && kartuMahasiswa.size > 0) {
+			const kmExt = getExt(kartuMahasiswa.name, kartuMahasiswa.type);
+			const kmFileName = `${trackingCode}-kartu-${timestamp}.${kmExt}`;
+			kmRelPath = join("uploads", "kartu-mahasiswa", kmFileName);
+			const kmAbsPath = join(process.cwd(), kmRelPath);
+			const kmArrayBuffer = await kartuMahasiswa.arrayBuffer();
+			await writeFile(kmAbsPath, Buffer.from(kmArrayBuffer));
+			kmOriginalName = kartuMahasiswa.name;
+		}
+
 		// Save record in database
-		await db.insert(submissions).values({
+		const insertValues: any = {
 			trackingCode,
 			namaLengkap,
-			nim,
-			dosenPembimbingPenguji,
-			judulSkripsi,
-			alamatLengkap,
-			noTelp,
-			programStudi,
-			email,
-			kartuMahasiswaPath: kmRelPath,
-			kartuMahasiswaOriginalName: kartuMahasiswa.name,
+			nim: nim || null,
+			dosenPembimbingPenguji: dosenPembimbingPenguji || null,
+			judulSkripsi: judulSkripsi || null,
+			alamatLengkap: alamatLengkap || null,
+			noTelp: noTelp || null,
+			programStudi: programStudi || null,
+			email: email || null,
 			skripsiPath: skripsiRelPath,
 			skripsiOriginalName: skripsi.name,
 			sumbanganBuku,
 			status: "pending",
-		});
+		};
+		if (kmRelPath) {
+			insertValues.kartuMahasiswaPath = kmRelPath;
+			insertValues.kartuMahasiswaOriginalName = kmOriginalName;
+		}
+
+		await db.insert(submissions).values(insertValues);
 
 		return { success: true, trackingCode };
 	},
@@ -591,17 +657,17 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 			throw new Error("Pengajuan tidak ditemukan");
 		}
 
-		// 2. Validate text inputs using schema
-		await submissionValidationSchema.validate(
+		// 2. Validate text inputs using relaxed admin schema (edit is admin-only)
+		await adminSubmissionValidationSchema.validate(
 			{
 				namaLengkap,
-				nim,
-				dosenPembimbingPenguji,
-				judulSkripsi,
-				alamatLengkap,
-				noTelp,
-				programStudi,
-				email,
+				nim: nim || undefined,
+				dosenPembimbingPenguji: dosenPembimbingPenguji || undefined,
+				judulSkripsi: judulSkripsi || undefined,
+				alamatLengkap: alamatLengkap || undefined,
+				noTelp: noTelp || undefined,
+				programStudi: programStudi || undefined,
+				email: email || undefined,
 				sumbanganBuku,
 			},
 			{ abortEarly: false },

@@ -144,9 +144,6 @@ function StatusComponent() {
             Kembali
           </Link>
         </Button>
-        <span className="text-xs text-muted-foreground font-semibold">
-          Cek Status
-        </span>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 relative z-10 space-y-6">

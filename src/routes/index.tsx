@@ -1,5 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { FileText, LayoutDashboard, Search, Shield, BookPlus } from "lucide-react";
+import {
+  FileText,
+  LayoutDashboard,
+  Search,
+  Shield,
+  BookPlus,
+} from "lucide-react";
 import { ModeToggle } from "../components/mode-toggle";
 import { Button } from "../components/ui/button";
 import { getSessionFn } from "../server/authFunctions";
@@ -72,7 +78,7 @@ function HomeComponent() {
         </p>
 
         {/* Three Main CTA Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 max-w-md mx-auto sm:max-w-none">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8 max-w-md mx-auto font-semibold sm:max-w-none">
           <Button
             asChild
             size="lg"

@@ -157,44 +157,27 @@ function AdminPengajuanComponent() {
   const validateEditForm = () => {
     const newErrors: Record<string, string> = {};
 
+    // Only Nama Lengkap is required for admin
     if (!editNamaLengkap.trim())
       newErrors.namaLengkap = "Nama lengkap wajib diisi";
     else if (editNamaLengkap.trim().length < 3)
       newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
 
-    if (!editNim.trim()) newErrors.nim = "NIM/Stambuk wajib diisi";
-    else if (editNim.trim().length < 5)
-      newErrors.nim = "NIM/Stambuk minimal 5 karakter";
-    else if (!/^[a-zA-Z0-9.\-/]+$/.test(editNim.trim()))
-      newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+    // Validate other fields only if filled (not empty)
+    if (editNim.trim()) {
+      if (!/^[a-zA-Z0-9.\-/]+$/.test(editNim.trim()))
+        newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+    }
 
-    if (!editEmail.trim()) newErrors.email = "Email wajib diisi";
-    else if (!/\S+@\S+\.\S+/.test(editEmail))
-      newErrors.email = "Format email tidak valid";
+    if (editEmail.trim()) {
+      if (!/\S+@\S+\.\S+/.test(editEmail))
+        newErrors.email = "Format email tidak valid";
+    }
 
-    if (!editNoTelp.trim()) newErrors.noTelp = "Nomor telepon wajib diisi";
-    else if (editNoTelp.trim().length < 9)
-      newErrors.noTelp = "Nomor telepon minimal 9 digit";
-    else if (!/^[0-9+\s\-()]+$/.test(editNoTelp))
-      newErrors.noTelp = "Format nomor telepon tidak valid";
-
-    if (!editAlamatLengkap.trim())
-      newErrors.alamatLengkap = "Alamat lengkap wajib diisi";
-    else if (editAlamatLengkap.trim().length < 10)
-      newErrors.alamatLengkap = "Alamat lengkap minimal 10 karakter";
-
-    if (!editProgramStudi)
-      newErrors.programStudi = "Program studi wajib dipilih";
-
-    if (!editDosenPembimbing.trim())
-      newErrors.dosenPembimbing = "Dosen pembimbing & penguji wajib diisi";
-    else if (editDosenPembimbing.trim().length < 5)
-      newErrors.dosenPembimbing = "Minimal 5 karakter";
-
-    if (!editJudulSkripsi.trim())
-      newErrors.judulSkripsi = "Judul skripsi wajib diisi";
-    else if (editJudulSkripsi.trim().length < 5)
-      newErrors.judulSkripsi = "Judul skripsi minimal 5 karakter";
+    if (editNoTelp.trim()) {
+      if (!/^[0-9+\s\-()]+$/.test(editNoTelp))
+        newErrors.noTelp = "Format nomor telepon tidak valid";
+    }
 
     if (editKtmFile) {
       const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
@@ -282,46 +265,30 @@ function AdminPengajuanComponent() {
   const validateAddForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!addNamaLengkap.trim()) newErrors.namaLengkap = "Nama lengkap wajib diisi";
+    // Only Nama Lengkap is required text field for admin
+    if (!addNamaLengkap.trim())
+      newErrors.namaLengkap = "Nama lengkap wajib diisi";
     else if (addNamaLengkap.trim().length < 3)
       newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
 
-    if (!addNim.trim()) newErrors.nim = "NIM/Stambuk wajib diisi";
-    else if (addNim.trim().length < 5)
-      newErrors.nim = "NIM/Stambuk minimal 5 karakter";
-    else if (!/^[a-zA-Z0-9.\-/]+$/.test(addNim.trim()))
-      newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+    // Validate other fields only if filled (not empty)
+    if (addNim.trim()) {
+      if (!/^[a-zA-Z0-9.\-/]+$/.test(addNim.trim()))
+        newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+    }
 
-    if (!addEmail.trim()) newErrors.email = "Email wajib diisi";
-    else if (!/\S+@\S+\.\S+/.test(addEmail))
-      newErrors.email = "Format email tidak valid";
+    if (addEmail.trim()) {
+      if (!/\S+@\S+\.\S+/.test(addEmail))
+        newErrors.email = "Format email tidak valid";
+    }
 
-    if (!addNoTelp.trim()) newErrors.noTelp = "Nomor telepon wajib diisi";
-    else if (addNoTelp.trim().length < 9)
-      newErrors.noTelp = "Nomor telepon minimal 9 digit";
-    else if (!/^[0-9+\s\-()]+$/.test(addNoTelp))
-      newErrors.noTelp = "Format nomor telepon tidak valid";
+    if (addNoTelp.trim()) {
+      if (!/^[0-9+\s\-()]+$/.test(addNoTelp))
+        newErrors.noTelp = "Format nomor telepon tidak valid";
+    }
 
-    if (!addAlamatLengkap.trim())
-      newErrors.alamatLengkap = "Alamat lengkap wajib diisi";
-    else if (addAlamatLengkap.trim().length < 10)
-      newErrors.alamatLengkap = "Alamat lengkap minimal 10 karakter";
-
-    if (!addProgramStudi) newErrors.programStudi = "Program studi wajib dipilih";
-
-    if (!addDosenPembimbing.trim())
-      newErrors.dosenPembimbing = "Dosen pembimbing & penguji wajib diisi";
-    else if (addDosenPembimbing.trim().length < 5)
-      newErrors.dosenPembimbing = "Minimal 5 karakter";
-
-    if (!addJudulSkripsi.trim())
-      newErrors.judulSkripsi = "Judul skripsi wajib diisi";
-    else if (addJudulSkripsi.trim().length < 5)
-      newErrors.judulSkripsi = "Judul skripsi minimal 5 karakter";
-
-    if (!addKtmFile) {
-      newErrors.kartuMahasiswa = "Kartu Mahasiswa wajib diunggah";
-    } else {
+    // KTM is optional for admin
+    if (addKtmFile) {
       const validKMTypes = ["application/pdf", "image/jpeg", "image/png"];
       if (!validKMTypes.includes(addKtmFile.type)) {
         newErrors.kartuMahasiswa = "Format file harus PDF, JPG, atau PNG";
@@ -331,6 +298,7 @@ function AdminPengajuanComponent() {
       }
     }
 
+    // File Skripsi is always required
     if (!addSkripsiFile) {
       newErrors.skripsi = "File Skripsi wajib diunggah";
     } else {
@@ -356,6 +324,7 @@ function AdminPengajuanComponent() {
     setLoadingAction(true);
     try {
       const formData = new FormData();
+      formData.append("isAdmin", "true");
       formData.append("namaLengkap", addNamaLengkap.trim());
       formData.append("nim", addNim.trim().toUpperCase());
       formData.append("email", addEmail.trim());
@@ -370,7 +339,9 @@ function AdminPengajuanComponent() {
 
       const res = await createSubmissionFn({ data: formData });
       if (res.success) {
-        toast.success(`Pengajuan berhasil ditambahkan! Kode Tracking: ${res.trackingCode}`);
+        toast.success(
+          `Pengajuan berhasil ditambahkan! Kode Tracking: ${res.trackingCode}`,
+        );
         setIsAddOpen(false);
         // Reset states
         setAddNamaLengkap("");
@@ -637,7 +608,6 @@ function AdminPengajuanComponent() {
           </p>
         </div>
         <Button
-          className="rounded-xl cursor-pointer gap-2"
           onClick={() => {
             setAddNamaLengkap("");
             setAddNim("");
@@ -654,7 +624,7 @@ function AdminPengajuanComponent() {
             setIsAddOpen(true);
           }}
         >
-          <Plus className="h-4 w-4" />
+          <Plus />
           Tambah Pengajuan
         </Button>
       </div>
@@ -1340,10 +1310,7 @@ function AdminPengajuanComponent() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">
-            <AlertDialogCancel
-              className="border-border rounded-xl cursor-pointer"
-              disabled={loadingAction}
-            >
+            <AlertDialogCancel disabled={loadingAction}>
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
@@ -1392,7 +1359,6 @@ function AdminPengajuanComponent() {
           <DialogFooter className="pt-4 border-t border-border/40 mt-4 flex gap-2">
             <Button
               variant="outline"
-              className="border-border rounded-xl cursor-pointer flex-1"
               onClick={() => setIsRejectDialogOpen(false)}
               disabled={loadingAction}
             >
@@ -1424,7 +1390,7 @@ function AdminPengajuanComponent() {
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-2">
             <AlertDialogCancel
-              className="border-border rounded-xl cursor-pointer"
+              className="border-border "
               disabled={loadingAction}
             >
               Batal
@@ -1435,7 +1401,7 @@ function AdminPengajuanComponent() {
                 handleDelete();
               }}
               disabled={loadingAction}
-              className="bg-rose-600 hover:bg-rose-500 text-white rounded-xl cursor-pointer"
+              className="bg-rose-600 hover:bg-rose-500 text-white "
             >
               {loadingAction ? "Memproses..." : "Hapus Permanen"}
             </AlertDialogAction>
@@ -1776,7 +1742,6 @@ function AdminPengajuanComponent() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-border rounded-xl cursor-pointer"
                 onClick={() => {
                   setIsEditOpen(false);
                   setSelectedSub(null);
@@ -1785,11 +1750,7 @@ function AdminPengajuanComponent() {
               >
                 Batal
               </Button>
-              <Button
-                type="submit"
-                className="rounded-xl cursor-pointer"
-                disabled={loadingAction}
-              >
+              <Button type="submit" disabled={loadingAction}>
                 {loadingAction ? "Menyimpan..." : "Simpan Perubahan"}
               </Button>
             </DialogFooter>
@@ -1802,11 +1763,11 @@ function AdminPengajuanComponent() {
         <DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
           <DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Plus className="h-5 w-5" />
               Tambah Pengajuan Bebas Pustaka
             </DialogTitle>
             <DialogDescription>
-              Isi formulir berikut untuk menambahkan pengajuan bebas pustaka baru.
+              Isi formulir berikut untuk menambahkan pengajuan bebas pustaka
+              baru.
             </DialogDescription>
           </DialogHeader>
 
@@ -1850,9 +1811,7 @@ function AdminPengajuanComponent() {
                         className="bg-background/40"
                       />
                       {addErrors.nim && (
-                        <p className="text-xs text-rose-500">
-                          {addErrors.nim}
-                        </p>
+                        <p className="text-xs text-rose-500">{addErrors.nim}</p>
                       )}
                     </div>
 
@@ -2009,11 +1968,8 @@ function AdminPengajuanComponent() {
                   <div className="space-y-2">
                     <Label className="flex items-center gap-1">
                       Unggah KTM / Kartu Anggota{" "}
-                      <span className="text-[10px] text-rose-500 font-semibold">
-                        *Wajib
-                      </span>
                       <span className="text-[10px] text-muted-foreground font-normal">
-                        (PDF, JPG, PNG - Maks 10MB)
+                        (PDF, JPG, PNG - Maks 10MB - Opsional)
                       </span>
                     </Label>
                     <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-indigo-500/40 rounded-xl p-4 bg-background/10 transition-colors relative">
@@ -2084,7 +2040,6 @@ function AdminPengajuanComponent() {
               <Button
                 type="button"
                 variant="outline"
-                className="border-border rounded-xl cursor-pointer"
                 onClick={() => {
                   setIsAddOpen(false);
                 }}
@@ -2092,16 +2047,12 @@ function AdminPengajuanComponent() {
               >
                 Batal
               </Button>
-              <Button
-                type="submit"
-                className="rounded-xl cursor-pointer gap-2"
-                disabled={loadingAction}
-              >
+              <Button type="submit" disabled={loadingAction}>
                 {loadingAction ? (
                   "Menyimpan..."
                 ) : (
                   <>
-                    <Plus className="h-4 w-4" />
+                    <Plus />
                     Tambah Pengajuan
                   </>
                 )}
