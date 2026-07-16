@@ -1,4 +1,4 @@
-import { mkdir, unlink, writeFile, readFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
@@ -63,25 +63,40 @@ export const adminSubmissionValidationSchema = yup.object().shape({
 		.string()
 		.optional()
 		.transform((v) => (v === "" || v === null ? undefined : v))
-		.test("nim-format", "NIM hanya boleh huruf, angka, titik, strip, dan slash", (v) =>
-			!v || /^[a-zA-Z0-9.\-/]+$/.test(v),
+		.test(
+			"nim-format",
+			"NIM hanya boleh huruf, angka, titik, strip, dan slash",
+			(v) => !v || /^[a-zA-Z0-9.\-/]+$/.test(v),
 		),
-	dosenPembimbingPenguji: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
-	judulSkripsi: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
-	alamatLengkap: yup.string().optional().transform((v) => (v === "" || v === null ? undefined : v)),
+	dosenPembimbingPenguji: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v)),
+	judulSkripsi: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v)),
+	alamatLengkap: yup
+		.string()
+		.optional()
+		.transform((v) => (v === "" || v === null ? undefined : v)),
 	noTelp: yup
 		.string()
 		.optional()
 		.transform((v) => (v === "" || v === null ? undefined : v))
-		.test("telp-format", "Format nomor telepon tidak valid", (v) =>
-			!v || /^[0-9+\s\-()]+$/.test(v),
+		.test(
+			"telp-format",
+			"Format nomor telepon tidak valid",
+			(v) => !v || /^[0-9+\s\-()]+$/.test(v),
 		),
 	programStudi: yup
 		.string()
 		.optional()
 		.transform((v) => (v === "" || v === null ? undefined : v))
-		.test("prodi-valid", "Program Studi tidak terdaftar", (v) =>
-			!v || Object.keys(programStudiMap).includes(v),
+		.test(
+			"prodi-valid",
+			"Program Studi tidak terdaftar",
+			(v) => !v || Object.keys(programStudiMap).includes(v),
 		),
 	email: yup
 		.string()
@@ -121,7 +136,8 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 
 		const namaLengkap = data.get("namaLengkap") as string;
 		const nim = (data.get("nim") as string) || "";
-		const dosenPembimbingPenguji = (data.get("dosenPembimbingPenguji") as string) || "";
+		const dosenPembimbingPenguji =
+			(data.get("dosenPembimbingPenguji") as string) || "";
 		const judulSkripsi = (data.get("judulSkripsi") as string) || "";
 		const alamatLengkap = (data.get("alamatLengkap") as string) || "";
 		const noTelp = (data.get("noTelp") as string) || "";
@@ -130,7 +146,9 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 		const sumbanganBuku = (data.get("sumbanganBuku") || "tidak_ada") as any;
 
 		// Validate texts — use relaxed schema for admin
-		const schema = isAdmin ? adminSubmissionValidationSchema : submissionValidationSchema;
+		const schema = isAdmin
+			? adminSubmissionValidationSchema
+			: submissionValidationSchema;
 		await schema.validate(
 			{
 				namaLengkap,
@@ -238,8 +256,7 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 		await db.insert(submissions).values(insertValues);
 
 		return { success: true, trackingCode };
-	},
-);
+	});
 
 export const getSubmissionsFn = createServerFn({ method: "GET" })
 	.validator(
@@ -386,6 +403,8 @@ export const getSubmissionStatusFn = createServerFn({ method: "GET" })
 				judulSkripsi: submissions.judulSkripsi,
 				status: submissions.status,
 				catatanAdmin: submissions.catatanAdmin,
+				suratNomor: submissions.suratNomor,
+				suratPath: submissions.suratPath,
 				createdAt: submissions.createdAt,
 				verifiedAt: submissions.verifiedAt,
 			})
@@ -404,12 +423,48 @@ export const verifySubmissionFn = createServerFn({ method: "POST" })
 			throw new Error("Unauthorized");
 		}
 
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(eq(submissions.id, data.id));
+		const sub = list[0];
+		if (!sub) {
+			throw new Error("Pengajuan tidak ditemukan");
+		}
+
+		let suratNomor: string | null = null;
+		let suratPath: string | null = null;
+		try {
+			const { generateSuratBebasPustaka } = await import(
+				"./lib/generateSuratBebasPustaka"
+			);
+			const generated = await generateSuratBebasPustaka({
+				trackingCode: sub.trackingCode,
+				nama: sub.namaLengkap,
+				stambuk: sub.nim,
+				programStudi:
+					programStudiMap[sub.programStudi as keyof typeof programStudiMap] ||
+					sub.programStudi,
+				alamat: sub.alamatLengkap || "-",
+			});
+			suratNomor = generated.suratNomor;
+			suratPath = generated.suratPath;
+		} catch (e) {
+			console.error(
+				"Gagal melakukan generasi otomatis surat bebas pustaka:",
+				e,
+			);
+		}
+
 		await db
 			.update(submissions)
 			.set({
 				status: "diverifikasi",
 				verifiedByUserId: user.id,
 				verifiedAt: new Date(),
+				suratNomor,
+				suratPath,
+				suratGeneratedAt: suratPath ? new Date() : null,
 			})
 			.where(eq(submissions.id, data.id));
 
@@ -520,7 +575,10 @@ export const downloadSubmissionFileFn = createServerFn({ method: "POST" })
 		let mimeType = "application/pdf";
 		if (fileRelPath.toLowerCase().endsWith(".png")) {
 			mimeType = "image/png";
-		} else if (fileRelPath.toLowerCase().endsWith(".jpg") || fileRelPath.toLowerCase().endsWith(".jpeg")) {
+		} else if (
+			fileRelPath.toLowerCase().endsWith(".jpg") ||
+			fileRelPath.toLowerCase().endsWith(".jpeg")
+		) {
 			mimeType = "image/jpeg";
 		}
 
@@ -645,7 +703,7 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 		const email = data.get("email") as string;
 		const sumbanganBuku = (data.get("sumbanganBuku") || "tidak_ada") as any;
 		const status = data.get("status") as any;
-		const catatanAdmin = data.get("catatanAdmin") as string || null;
+		const catatanAdmin = (data.get("catatanAdmin") as string) || null;
 
 		// 1. Fetch existing submission
 		const list = await db
@@ -786,3 +844,150 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 		return { success: true };
 	});
 
+export const downloadSertifikatFn = createServerFn({ method: "POST" })
+	.validator((d: { id: number }) => d)
+	.handler(async ({ data }) => {
+		const user = await getUserFromSession();
+		if (!user || user.role !== "admin") throw new Error("Unauthorized");
+
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(eq(submissions.id, data.id));
+		const sub = list[0];
+		if (!sub || !sub.suratPath) throw new Error("Sertifikat belum tersedia");
+
+		const isPdf = sub.suratPath.toLowerCase().endsWith(".pdf");
+		const fileBuffer = await readFile(join(process.cwd(), sub.suratPath));
+		return {
+			base64: fileBuffer.toString("base64"),
+			mimeType: isPdf
+				? "application/pdf"
+				: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			fileName: `Surat-Bebas-Pustaka-${sub.namaLengkap}.${isPdf ? "pdf" : "docx"}`,
+		};
+	});
+
+export const getPublicDocumentsFn = createServerFn({ method: "GET" })
+	.validator(
+		(
+			d: {
+				search?: string;
+				programStudi?: string;
+				jenisDokumen?: string;
+				page?: number;
+			} = {},
+		) => d,
+	)
+	.handler(async ({ data }) => {
+		const { search, programStudi, jenisDokumen, page = 1 } = data;
+		const conditions = [eq(submissions.status, "diverifikasi")];
+		if (search) conditions.push(like(submissions.judulSkripsi, `%${search}%`));
+		if (programStudi)
+			conditions.push(eq(submissions.programStudi, programStudi as any));
+		if (jenisDokumen) {
+			if (jenisDokumen === "tesis") {
+				conditions.push(eq(submissions.programStudi, "s2_gigi"));
+			} else if (jenisDokumen === "disertasi") {
+				conditions.push(eq(submissions.programStudi, "s3_gigi"));
+			} else if (jenisDokumen === "skripsi") {
+				conditions.push(
+					sql`${submissions.programStudi} NOT IN ('s2_gigi', 's3_gigi')`,
+				);
+			}
+		}
+
+		const items = await db
+			.select({
+				id: submissions.id,
+				trackingCode: submissions.trackingCode,
+				namaLengkap: submissions.namaLengkap,
+				judulSkripsi: submissions.judulSkripsi,
+				programStudi: submissions.programStudi,
+				createdAt: submissions.createdAt,
+			})
+			.from(submissions)
+			.where(and(...conditions))
+			.limit(10)
+			.offset((page - 1) * 10);
+
+		return { items };
+	});
+
+export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
+	.validator((d: { id: number }) => d)
+	.handler(async ({ data }) => {
+		const list = await db
+			.select({
+				id: submissions.id,
+				trackingCode: submissions.trackingCode,
+				namaLengkap: submissions.namaLengkap,
+				nim: submissions.nim,
+				judulSkripsi: submissions.judulSkripsi,
+				programStudi: submissions.programStudi,
+				dosenPembimbingPenguji: submissions.dosenPembimbingPenguji,
+				createdAt: submissions.createdAt,
+			})
+			.from(submissions)
+			.where(
+				and(
+					eq(submissions.id, data.id),
+					eq(submissions.status, "diverifikasi"),
+				),
+			);
+		const doc = list[0];
+		if (!doc)
+			throw new Error("Dokumen tidak ditemukan atau belum diverifikasi");
+		return doc;
+	});
+
+export const checkDocumentAccessFn = createServerFn({ method: "GET" }).handler(
+	async () => {
+		const { checkAccess } = await import("./lib/ipWhitelist");
+		return { allowed: checkAccess() };
+	},
+);
+
+export const downloadDocumentFn = createServerFn({ method: "POST" })
+	.validator((d: { id: number }) => d)
+	.handler(async ({ data }) => {
+		const { checkAccess } = await import("./lib/ipWhitelist");
+		if (!checkAccess()) {
+			throw new Error("403: Akses ditolak — IP tidak terdaftar di whitelist");
+		}
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(
+				and(
+					eq(submissions.id, data.id),
+					eq(submissions.status, "diverifikasi"),
+				),
+			);
+		const sub = list[0];
+		if (!sub) throw new Error("Dokumen tidak ditemukan");
+
+		const fileBuffer = await readFile(join(process.cwd(), sub.skripsiPath));
+		return {
+			base64: fileBuffer.toString("base64"),
+			mimeType: "application/pdf",
+			fileName: sub.skripsiOriginalName || "dokumen.pdf",
+		};
+	});
+
+export const downloadPublicSertifikatFn = createServerFn({ method: "POST" })
+	.validator((d: { id: number }) => d)
+	.handler(async ({ data }) => {
+		const list = await db.select().from(submissions).where(eq(submissions.id, data.id));
+		const sub = list[0];
+		if (!sub || sub.status !== "diverifikasi" || !sub.suratPath) {
+			throw new Error("Sertifikat belum tersedia atau pengajuan belum disetujui");
+		}
+
+		const fileBuffer = await readFile(join(process.cwd(), sub.suratPath));
+		return {
+			base64: fileBuffer.toString("base64"),
+			mimeType: "application/pdf",
+			fileName: `Surat-Bebas-Pustaka-${sub.namaLengkap}.pdf`,
+		};
+	});

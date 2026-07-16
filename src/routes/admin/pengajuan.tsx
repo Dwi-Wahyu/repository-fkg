@@ -14,18 +14,18 @@ import {
   Mail,
   MapPin,
   MoreHorizontal,
+  Pencil,
   Phone,
+  Plus,
   RefreshCw,
   Search,
   Trash2,
+  Upload,
   User,
   X,
   XCircle,
-  Pencil,
-  Plus,
-  Upload,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +62,14 @@ import {
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -73,21 +81,14 @@ import { Textarea } from "../../components/ui/textarea";
 import { toast } from "../../components/ui/useToast";
 import { programStudiMap } from "../../server/db/schema";
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select";
-import {
+  createSubmissionFn,
   deleteSubmissionFn,
+  downloadSertifikatFn,
   downloadSubmissionFileFn,
   getSubmissionsFn,
   rejectSubmissionFn,
-  verifySubmissionFn,
   updateSubmissionFn,
-  createSubmissionFn,
+  verifySubmissionFn,
 } from "../../server/submissionFunctions";
 
 export const Route = createFileRoute("/admin/pengajuan")({
@@ -509,6 +510,32 @@ function AdminPengajuanComponent() {
     }
   };
 
+  const handleDownloadSertifikat = async (id: number) => {
+    try {
+      toast.success("Mempersiapkan unduhan sertifikat...");
+      const res = await downloadSertifikatFn({ data: { id } });
+
+      // Decode base64
+      const binaryString = window.atob(res.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: res.mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Sertifikat berhasil diunduh.");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal mengunduh sertifikat");
+    }
+  };
+
   // Actions
   const handleVerify = async () => {
     if (actionId === null) return;
@@ -812,6 +839,14 @@ function AdminPengajuanComponent() {
                         >
                           <Eye size={14} /> Detail
                         </DropdownMenuItem>
+                        {item.status === "diverifikasi" && item.suratPath && (
+                          <DropdownMenuItem
+                            className="cursor-pointer gap-2"
+                            onClick={() => handleDownloadSertifikat(item.id)}
+                          >
+                            <Download size={14} /> Sertifikat
+                          </DropdownMenuItem>
+                        )}
                         {item.status === "pending" && (
                           <>
                             <DropdownMenuItem
@@ -913,7 +948,6 @@ function AdminPengajuanComponent() {
       </div>
 
       {/* Large Detail Dialog */}
-      {/* Large Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
           <DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
@@ -937,7 +971,21 @@ function AdminPengajuanComponent() {
                   {/* Status banner */}
                   <div className="flex justify-between items-center bg-muted/40 p-4 rounded-xl border border-border/60">
                     <span className="font-semibold">Status Saat Ini</span>
-                    {getStatusBadge(selectedSub.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(selectedSub.status)}
+                      {selectedSub.status === "diverifikasi" &&
+                        selectedSub.suratPath && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleDownloadSertifikat(selectedSub.id)
+                            }
+                          >
+                            <Download /> Download Sertifikat
+                          </Button>
+                        )}
+                    </div>
                   </div>
 
                   {selectedSub.status === "ditolak" &&
@@ -1053,8 +1101,8 @@ function AdminPengajuanComponent() {
                         <span className="text-muted-foreground text-xs font-semibold">
                           Judul Karya Ilmiah
                         </span>
-                        <p className="text-xs bg-muted/20 border border-border/40 p-2.5 rounded-lg italic font-medium leading-relaxed text-foreground">
-                          "{selectedSub.judulSkripsi}"
+                        <p className="italic font-medium leading-relaxed text-foreground">
+                          {selectedSub.judulSkripsi}
                         </p>
                       </div>
                     </div>
@@ -1063,7 +1111,7 @@ function AdminPengajuanComponent() {
                   {/* Verification Info Footer if processed */}
                   {selectedSub.status !== "pending" &&
                     selectedSub.verifiedAt && (
-                      <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1 pt-3 border-t border-border/40">
+                      <div className="text-[10px] text-muted-foreground/80 flex items-center gap-1">
                         <Calendar size={11} />
                         <span>
                           Diproses pada{" "}
@@ -1232,13 +1280,13 @@ function AdminPengajuanComponent() {
               {selectedSub && selectedSub.status === "pending" && (
                 <Button
                   variant="destructive"
-                  className="cursor-pointer hover:bg-rose-600 rounded-xl"
+                  className="hover:bg-rose-600"
                   onClick={() => {
                     setActionId(selectedSub.id);
                     setIsRejectDialogOpen(true);
                   }}
                 >
-                  <X className="mr-1.5 h-4 w-4" /> Tolak
+                  <X /> Tolak
                 </Button>
               )}
             </div>
@@ -1246,7 +1294,6 @@ function AdminPengajuanComponent() {
               {selectedSub && (
                 <Button
                   variant="outline"
-                  className="border-border rounded-xl cursor-pointer gap-1.5"
                   onClick={() => {
                     setIsDetailOpen(false);
                     setEditNamaLengkap(selectedSub.namaLengkap);
@@ -1273,22 +1320,17 @@ function AdminPengajuanComponent() {
                   <Pencil size={14} /> Edit
                 </Button>
               )}
-              <Button
-                variant="outline"
-                className="border-border rounded-xl cursor-pointer"
-                onClick={() => setIsDetailOpen(false)}
-              >
+              <Button variant="outline" onClick={() => setIsDetailOpen(false)}>
                 Tutup
               </Button>
               {selectedSub && selectedSub.status === "pending" && (
                 <Button
-                  className="bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white rounded-xl cursor-pointer"
                   onClick={() => {
                     setActionId(selectedSub.id);
                     setIsVerifyAlertOpen(true);
                   }}
                 >
-                  <Check className="mr-1.5 h-4 w-4" /> Verifikasi Pengajuan
+                  <Check /> Verifikasi Pengajuan
                 </Button>
               )}
             </div>
@@ -1319,7 +1361,6 @@ function AdminPengajuanComponent() {
                 handleVerify();
               }}
               disabled={loadingAction}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl cursor-pointer"
             >
               {loadingAction ? "Memproses..." : "Ya, Setujui"}
             </AlertDialogAction>

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   Calendar,
   CheckCircle2,
+  Download,
   FileText,
   RefreshCw,
   Search,
@@ -23,7 +24,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { toast } from "../components/ui/useToast";
 import { programStudiMap } from "../server/db/schema";
-import { getSubmissionStatusFn } from "../server/submissionFunctions";
+import {
+  getSubmissionStatusFn,
+  downloadPublicSertifikatFn,
+} from "../server/submissionFunctions";
 
 export const Route = createFileRoute("/status")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -70,6 +74,41 @@ function StatusComponent() {
       setResults([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadSertifikat = async (id: number) => {
+    setDownloading(true);
+    try {
+      toast.success("Mempersiapkan unduhan surat bebas pustaka...");
+      const res = await downloadPublicSertifikatFn({ data: { id } });
+
+      // Decode base64
+      const binaryString = window.atob(res.base64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: res.mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Surat bebas pustaka berhasil diunduh.");
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : "Gagal mengunduh surat bebas pustaka";
+      toast.error(errMsg);
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -134,13 +173,9 @@ function StatusComponent() {
 
       {/* Back bar */}
       <div className="max-w-2xl mx-auto px-4 pt-8 pb-4 relative z-10 flex items-center justify-between">
-        <Button
-          asChild
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground pl-0 cursor-pointer"
-        >
+        <Button asChild variant="ghost">
           <Link to="/">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ArrowLeft />
             Kembali
           </Link>
         </Button>
@@ -316,7 +351,7 @@ function StatusComponent() {
                     {sub.status === "diverifikasi" && (
                       <div className="bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex items-start gap-3 text-left">
                         <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
+                        <div className="space-y-1 w-full">
                           <strong className="text-sm text-emerald-950 dark:text-emerald-300 font-bold block">
                             Verifikasi Berhasil!
                           </strong>
@@ -326,6 +361,18 @@ function StatusComponent() {
                             terpenuhi. Silakan hubungi loket administrasi
                             perpustakaan jika diperlukan.
                           </p>
+                          {sub.suratPath && (
+                            <div className="pt-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleDownloadSertifikat(sub.id)}
+                                disabled={downloading}
+                              >
+                                <Download />
+                                Download Surat Bebas Pustaka
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

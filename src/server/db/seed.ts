@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 import bcrypt from "bcryptjs";
 import { db } from "./index";
-import { submissions, users } from "./schema";
+import { letterSequence, submissions, users } from "./schema";
 
 async function main() {
 	console.log("🚀 Seeding MySQL database...");
@@ -19,6 +19,22 @@ async function main() {
 	const skripsiDummyPath = join(base, "skripsi", "dummy.pdf");
 	await Bun.write(kmDummyPath, dummyPdfContent);
 	await Bun.write(skripsiDummyPath, dummyPdfContent);
+
+	console.log("🔢 Seeding letter sequence...");
+	try {
+		await db
+			.insert(letterSequence)
+			.values({
+				id: 1,
+				currentNumber: 199,
+			})
+			.onDuplicateKeyUpdate({
+				set: { currentNumber: 199 },
+			});
+		console.log("✅ Letter sequence seeded.");
+	} catch (e) {
+		console.log("⚠️ Letter sequence seeding error:", (e as Error).message);
+	}
 
 	const adminPasswordHash = await bcrypt.hash("admin123", 10);
 

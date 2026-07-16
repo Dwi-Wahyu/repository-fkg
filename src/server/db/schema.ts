@@ -81,8 +81,16 @@ export const submissions = mysqlTable("submissions", {
 		onDelete: "set null",
 	}),
 	verifiedAt: timestamp("verified_at"),
+	suratNomor: varchar("surat_nomor", { length: 100 }),
+	suratPath: varchar("surat_path", { length: 500 }),
+	suratGeneratedAt: timestamp("surat_generated_at"),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 	updatedAt: timestamp("updated_at").notNull().defaultNow().onUpdateNow(),
+});
+
+export const letterSequence = mysqlTable("letter_sequence", {
+	id: int("id").primaryKey(),
+	currentNumber: int("current_number").notNull().default(199),
 });
 
 export const bookSuggestions = mysqlTable("book_suggestions", {

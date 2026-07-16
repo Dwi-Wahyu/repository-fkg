@@ -1,4 +1,4 @@
-import { mkdir, writeFile, unlink, readFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, setCookie } from "@tanstack/react-start/server";
@@ -31,11 +31,13 @@ export const createBookSuggestionFn = createServerFn({ method: "POST" })
 		await ensureCoverDirs();
 
 		const judulBuku = data.get("judulBuku") as string;
-		const penerbit = (data.get("penerbit") as string || "").trim() || null;
+		const penerbit = ((data.get("penerbit") as string) || "").trim() || null;
 		const coverBuku = data.get("coverBuku") as File | null;
 
 		// 1. Validate inputs
-		const validated = await bookSuggestionValidationSchema.validate({ judulBuku });
+		const validated = await bookSuggestionValidationSchema.validate({
+			judulBuku,
+		});
 		const judulBukuTrimmed = validated.judulBuku.trim();
 
 		// 2. Cooldown check (24 hours) via server cookie
@@ -49,7 +51,9 @@ export const createBookSuggestionFn = createServerFn({ method: "POST" })
 				if (elapsed < cooldownMs) {
 					const remainingMs = cooldownMs - elapsed;
 					const remainingHrs = Math.floor(remainingMs / (3600 * 1000));
-					const remainingMins = Math.ceil((remainingMs % (3600 * 1000)) / (60 * 1000));
+					const remainingMins = Math.ceil(
+						(remainingMs % (3600 * 1000)) / (60 * 1000),
+					);
 					throw new Error(
 						`Anda sudah mengusulkan buku hari ini. Coba lagi dalam ${remainingHrs} jam ${remainingMins} menit.`,
 					);
@@ -118,37 +122,38 @@ export const createBookSuggestionFn = createServerFn({ method: "POST" })
 		};
 	});
 
-export const getBookSuggestionCooldownFn = createServerFn({ method: "GET" })
-	.handler(async () => {
-		const lastUsulanAtStr = getCookie("last_usulan_buku_at");
-		if (!lastUsulanAtStr) {
-			return { canSubmit: true, remainingSeconds: 0, lastSubmittedAt: null };
-		}
+export const getBookSuggestionCooldownFn = createServerFn({
+	method: "GET",
+}).handler(async () => {
+	const lastUsulanAtStr = getCookie("last_usulan_buku_at");
+	if (!lastUsulanAtStr) {
+		return { canSubmit: true, remainingSeconds: 0, lastSubmittedAt: null };
+	}
 
-		const lastUsulanAt = parseInt(lastUsulanAtStr);
-		if (isNaN(lastUsulanAt)) {
-			return { canSubmit: true, remainingSeconds: 0, lastSubmittedAt: null };
-		}
+	const lastUsulanAt = parseInt(lastUsulanAtStr);
+	if (isNaN(lastUsulanAt)) {
+		return { canSubmit: true, remainingSeconds: 0, lastSubmittedAt: null };
+	}
 
-		const now = Date.now();
-		const elapsed = now - lastUsulanAt;
-		const cooldownMs = 86400 * 1000; // 24 hours
+	const now = Date.now();
+	const elapsed = now - lastUsulanAt;
+	const cooldownMs = 86400 * 1000; // 24 hours
 
-		if (elapsed >= cooldownMs) {
-			return {
-				canSubmit: true,
-				remainingSeconds: 0,
-				lastSubmittedAt: new Date(lastUsulanAt).toISOString(),
-			};
-		}
-
-		const remainingSeconds = Math.ceil((cooldownMs - elapsed) / 1000);
+	if (elapsed >= cooldownMs) {
 		return {
-			canSubmit: false,
-			remainingSeconds,
+			canSubmit: true,
+			remainingSeconds: 0,
 			lastSubmittedAt: new Date(lastUsulanAt).toISOString(),
 		};
-	});
+	}
+
+	const remainingSeconds = Math.ceil((cooldownMs - elapsed) / 1000);
+	return {
+		canSubmit: false,
+		remainingSeconds,
+		lastSubmittedAt: new Date(lastUsulanAt).toISOString(),
+	};
+});
 
 export const getBookSuggestionsFn = createServerFn({ method: "GET" })
 	.validator(
@@ -167,12 +172,7 @@ export const getBookSuggestionsFn = createServerFn({ method: "GET" })
 			throw new Error("Unauthorized");
 		}
 
-		const {
-			search,
-			sortOrder = "desc",
-			page = 1,
-			pageSize = 10,
-		} = data;
+		const { search, sortOrder = "desc", page = 1, pageSize = 10 } = data;
 
 		const conditions = [];
 		if (search) {

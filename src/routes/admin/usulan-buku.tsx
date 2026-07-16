@@ -1,27 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
 import {
+	ArrowDown,
+	ArrowUp,
+	ArrowUpDown,
 	BookOpen,
 	Calendar,
 	ChevronLeft,
 	ChevronRight,
+	Image,
 	Search,
 	Trash2,
-	ArrowUpDown,
-	ArrowUp,
-	ArrowDown,
-	Image,
 } from "lucide-react";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "../../components/ui/table";
+import { useState } from "react";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -32,17 +22,27 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "../../components/ui/alert-dialog";
+import { Button } from "../../components/ui/button";
 import {
 	Dialog,
 	DialogContent,
 	DialogHeader,
 	DialogTitle,
 } from "../../components/ui/dialog";
+import { Input } from "../../components/ui/input";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "../../components/ui/table";
 import { toast } from "../../components/ui/useToast";
 import {
 	deleteBookSuggestionFn,
-	getBookSuggestionsFn,
 	downloadBookCoverFn,
+	getBookSuggestionsFn,
 } from "../../server/bookSuggestionFunctions";
 
 export const Route = createFileRoute("/admin/usulan-buku")({
@@ -68,7 +68,8 @@ export const Route = createFileRoute("/admin/usulan-buku")({
 
 function AdminUsulanBukuComponent() {
 	const navigate = useNavigate({ from: "/admin/usulan-buku" });
-	const { items, totalItems, totalPages, page, pageSize } = Route.useLoaderData();
+	const { items, totalItems, totalPages, page, pageSize } =
+		Route.useLoaderData();
 	const searchParams = Route.useSearch();
 
 	// Local states
@@ -171,7 +172,8 @@ function AdminUsulanBukuComponent() {
 						Usulan Buku
 					</h2>
 					<p className="text-muted-foreground mt-1">
-						Daftar usulan judul buku baru dari pengunjung perpustakaan FKG Unhas.
+						Daftar usulan judul buku baru dari pengunjung perpustakaan FKG
+						Unhas.
 					</p>
 				</div>
 			</div>
@@ -201,7 +203,9 @@ function AdminUsulanBukuComponent() {
 						<TableRow>
 							<TableHead className="font-bold py-4">Judul Buku</TableHead>
 							<TableHead className="font-bold py-4">Penerbit</TableHead>
-							<TableHead className="font-bold text-center py-4">Cover</TableHead>
+							<TableHead className="font-bold text-center py-4">
+								Cover
+							</TableHead>
 							<TableHead className="w-[220px] font-bold py-4">
 								<button
 									type="button"
@@ -216,22 +220,32 @@ function AdminUsulanBukuComponent() {
 									)}
 								</button>
 							</TableHead>
-							<TableHead className="w-[100px] font-bold text-center py-4">Aksi</TableHead>
+							<TableHead className="w-[100px] font-bold text-center py-4">
+								Aksi
+							</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{items.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+								<TableCell
+									colSpan={5}
+									className="h-32 text-center text-muted-foreground"
+								>
 									<div className="flex flex-col items-center justify-center space-y-2">
 										<BookOpen className="h-8 w-8 text-muted-foreground/55" />
-										<p className="text-xs font-semibold">Belum ada usulan buku yang ditemukan.</p>
+										<p className="text-xs font-semibold">
+											Belum ada usulan buku yang ditemukan.
+										</p>
 									</div>
 								</TableCell>
 							</TableRow>
 						) : (
 							items.map((item: any) => (
-								<TableRow key={item.id} className="hover:bg-muted/5 transition-colors">
+								<TableRow
+									key={item.id}
+									className="hover:bg-muted/5 transition-colors"
+								>
 									<TableCell className="font-medium align-middle py-3.5">
 										{item.judulBuku}
 									</TableCell>
@@ -249,7 +263,9 @@ function AdminUsulanBukuComponent() {
 												<Image className="h-3.5 w-3.5" /> Lihat Cover
 											</Button>
 										) : (
-											<span className="text-muted-foreground text-xs font-semibold">-</span>
+											<span className="text-muted-foreground text-xs font-semibold">
+												-
+											</span>
 										)}
 									</TableCell>
 									<TableCell className="text-muted-foreground align-middle font-mono py-3.5">
@@ -325,7 +341,8 @@ function AdminUsulanBukuComponent() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Hapus Usulan Buku?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Tindakan ini tidak dapat dibatalkan. Usulan buku ini akan dihapus secara permanen dari sistem.
+							Tindakan ini tidak dapat dibatalkan. Usulan buku ini akan dihapus
+							secara permanen dari sistem.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter className="gap-2">
@@ -347,14 +364,23 @@ function AdminUsulanBukuComponent() {
 			</AlertDialog>
 
 			{/* Cover Preview Dialog */}
-			<Dialog open={isCoverDialogOpen} onOpenChange={(val) => { if (!val) handleCloseCoverDialog(); }}>
+			<Dialog
+				open={isCoverDialogOpen}
+				onOpenChange={(val) => {
+					if (!val) handleCloseCoverDialog();
+				}}
+			>
 				<DialogContent className="max-w-lg bg-card border-border rounded-3xl overflow-hidden p-6">
 					<DialogHeader>
-						<DialogTitle className="text-lg font-bold">Preview Cover Buku</DialogTitle>
+						<DialogTitle className="text-lg font-bold">
+							Preview Cover Buku
+						</DialogTitle>
 					</DialogHeader>
 					<div className="flex items-center justify-center p-2 min-h-64 bg-muted/10 border border-border rounded-2xl overflow-hidden mt-4">
 						{loadingCover ? (
-							<div className="text-sm text-muted-foreground animate-pulse">Memuat gambar cover...</div>
+							<div className="text-sm text-muted-foreground animate-pulse">
+								Memuat gambar cover...
+							</div>
 						) : selectedCoverUrl ? (
 							<img
 								src={selectedCoverUrl}
@@ -362,7 +388,9 @@ function AdminUsulanBukuComponent() {
 								className="max-w-full max-h-[450px] object-contain rounded-lg shadow-md"
 							/>
 						) : (
-							<div className="text-sm text-muted-foreground">Cover buku tidak dapat dimuat</div>
+							<div className="text-sm text-muted-foreground">
+								Cover buku tidak dapat dimuat
+							</div>
 						)}
 					</div>
 					<div className="flex justify-end pt-4 mt-2">

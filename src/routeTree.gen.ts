@@ -16,6 +16,7 @@ import { Route as AjukanRouteImport } from './routes/ajukan'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as DokumenIdRouteImport } from './routes/dokumen.$id'
 import { Route as AdminUsulanBukuRouteImport } from './routes/admin/usulan-buku'
 import { Route as AdminPengajuanRouteImport } from './routes/admin/pengajuan'
 
@@ -54,6 +55,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const DokumenIdRoute = DokumenIdRouteImport.update({
+  id: '/dokumen/$id',
+  path: '/dokumen/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminUsulanBukuRoute = AdminUsulanBukuRouteImport.update({
   id: '/usulan-buku',
   path: '/usulan-buku',
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
+  '/dokumen/$id': typeof DokumenIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
+  '/dokumen/$id': typeof DokumenIdRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
+  '/dokumen/$id': typeof DokumenIdRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/usulan-buku'
     | '/admin/pengajuan'
     | '/admin/usulan-buku'
+    | '/dokumen/$id'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -119,6 +129,7 @@ export interface FileRouteTypes {
     | '/usulan-buku'
     | '/admin/pengajuan'
     | '/admin/usulan-buku'
+    | '/dokumen/$id'
     | '/admin'
   id:
     | '__root__'
@@ -130,6 +141,7 @@ export interface FileRouteTypes {
     | '/usulan-buku'
     | '/admin/pengajuan'
     | '/admin/usulan-buku'
+    | '/dokumen/$id'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -140,6 +152,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   StatusRoute: typeof StatusRoute
   UsulanBukuRoute: typeof UsulanBukuRoute
+  DokumenIdRoute: typeof DokumenIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -193,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/dokumen/$id': {
+      id: '/dokumen/$id'
+      path: '/dokumen/$id'
+      fullPath: '/dokumen/$id'
+      preLoaderRoute: typeof DokumenIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/usulan-buku': {
       id: '/admin/usulan-buku'
       path: '/usulan-buku'
@@ -233,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   StatusRoute: StatusRoute,
   UsulanBukuRoute: UsulanBukuRoute,
+  DokumenIdRoute: DokumenIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
