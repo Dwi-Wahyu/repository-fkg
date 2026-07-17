@@ -47,3 +47,5 @@ ecosystem.config.cjs
 # migration assets
 /source-pdf/
 /staging/
+
+scripts/READY_TO_SEED_DATA.csv
