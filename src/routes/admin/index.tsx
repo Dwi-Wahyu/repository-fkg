@@ -19,6 +19,7 @@ import {
 	XAxis,
 	YAxis,
 } from "recharts";
+import { AdminTableSkeleton } from "../../components/skeletons/admin-table-skeleton";
 import { Button } from "../../components/ui/button";
 import {
 	Card,
@@ -34,6 +35,7 @@ export const Route = createFileRoute("/admin/")({
 	loader: async () => {
 		return await getDashboardStatsFn();
 	},
+	pendingComponent: () => <AdminTableSkeleton />,
 	component: DashboardComponent,
 });
 

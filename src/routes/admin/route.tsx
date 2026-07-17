@@ -128,6 +128,8 @@ function AdminLayoutComponent() {
 			{/* Mobile Sidebar Drawer Overlay */}
 			{isSidebarOpen && (
 				<div className="fixed inset-0 z-50 flex md:hidden">
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: Overlay tidak butuh event keyboard */}
+					{/* biome-ignore lint/a11y/useKeyWithClickEvents: Overlay klik tutup */}
 					<div
 						className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity animate-fade-in"
 						onClick={() => setIsSidebarOpen(false)}

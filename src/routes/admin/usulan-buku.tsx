@@ -12,6 +12,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useState } from "react";
+import { AdminTableSkeleton } from "../../components/skeletons/admin-table-skeleton";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -63,6 +64,7 @@ export const Route = createFileRoute("/admin/usulan-buku")({
 	loader: async ({ deps }) => {
 		return await getBookSuggestionsFn({ data: deps });
 	},
+	pendingComponent: () => <AdminTableSkeleton />,
 	component: AdminUsulanBukuComponent,
 });
 

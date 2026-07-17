@@ -36,6 +36,10 @@ export const Route = createRootRoute({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
+				name: "theme-color",
+				content: "#4f46e5",
+			},
+			{
 				title: "Repository FKG Unhas",
 			},
 		],
@@ -43,6 +47,8 @@ export const Route = createRootRoute({
 		links: [
 			{ rel: "icon", type: "image/png", href: "/favicon.png" },
 			{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" },
+			{ rel: "manifest", href: "/manifest.webmanifest" },
+			{ rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
 		],
 	}),
 	loader: async () => {
@@ -104,8 +110,9 @@ function RootComponent() {
 	const isAdminRoute = location.pathname.startsWith("/admin");
 	const isAuthRoute = location.pathname === "/login";
 	const isPublicRoute =
-		["/", "/ajukan", "/status", "/usulan-buku"].includes(location.pathname) ||
-		location.pathname.startsWith("/dokumen");
+		["/", "/ajukan", "/status", "/usulan-buku", "/akses-internal"].includes(
+			location.pathname,
+		) || location.pathname.startsWith("/dokumen");
 
 	const handleLogout = async () => {
 		await logoutFn();
@@ -277,14 +284,14 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
 				<script
 					dangerouslySetInnerHTML={{
 						__html: `
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for (var i = 0; i < registrations.length; i++) {
-                    registrations[i].unregister();
-                  }
-                });
-              }
-            `,
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+              navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                console.error('SW registration failed:', err);
+              });
+            });
+          }
+        `,
 					}}
 				/>
 				<Scripts />

@@ -897,6 +897,11 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 			}
 		}
 
+		const [{ count }] = await db
+			.select({ count: sql<number>`count(*)` })
+			.from(submissions)
+			.where(and(...conditions));
+
 		const items = await db
 			.select({
 				id: submissions.id,
@@ -911,7 +916,12 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 			.limit(10)
 			.offset((page - 1) * 10);
 
-		return { items };
+		return {
+			items,
+			totalItems: count,
+			totalPages: Math.max(1, Math.ceil(count / 10)),
+			page,
+		};
 	});
 
 export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
@@ -943,16 +953,18 @@ export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
 
 export const checkDocumentAccessFn = createServerFn({ method: "GET" }).handler(
 	async () => {
-		const { checkAccess } = await import("./lib/ipWhitelist");
-		return { allowed: checkAccess() };
+		const { checkDocumentAccess } = await import("./lib/documentAccess");
+		const allowed = await checkDocumentAccess();
+		return { allowed };
 	},
 );
 
 export const downloadDocumentFn = createServerFn({ method: "POST" })
 	.validator((d: { id: number }) => d)
 	.handler(async ({ data }) => {
-		const { checkAccess } = await import("./lib/ipWhitelist");
-		if (!checkAccess()) {
+		const { checkDocumentAccess } = await import("./lib/documentAccess");
+		const allowed = await checkDocumentAccess();
+		if (!allowed) {
 			throw new Error("403: Akses ditolak — IP tidak terdaftar di whitelist");
 		}
 		const list = await db
@@ -975,13 +987,47 @@ export const downloadDocumentFn = createServerFn({ method: "POST" })
 		};
 	});
 
+export const getDocumentPreviewFn = createServerFn({ method: "POST" })
+	.validator((d: { id: number }) => d)
+	.handler(async ({ data }) => {
+		const { checkDocumentAccess } = await import("./lib/documentAccess");
+		const allowed = await checkDocumentAccess();
+		if (!allowed) {
+			throw new Error(
+				"403: Akses ditolak — dokumen hanya bisa dipratinjau dari komputer internal",
+			);
+		}
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(
+				and(
+					eq(submissions.id, data.id),
+					eq(submissions.status, "diverifikasi"),
+				),
+			);
+		const sub = list[0];
+		if (!sub) throw new Error("Dokumen tidak ditemukan");
+
+		const fileBuffer = await readFile(join(process.cwd(), sub.skripsiPath));
+		return {
+			base64: fileBuffer.toString("base64"),
+			fileName: sub.skripsiOriginalName || "dokumen.pdf",
+		};
+	});
+
 export const downloadPublicSertifikatFn = createServerFn({ method: "POST" })
 	.validator((d: { id: number }) => d)
 	.handler(async ({ data }) => {
-		const list = await db.select().from(submissions).where(eq(submissions.id, data.id));
+		const list = await db
+			.select()
+			.from(submissions)
+			.where(eq(submissions.id, data.id));
 		const sub = list[0];
 		if (!sub || sub.status !== "diverifikasi" || !sub.suratPath) {
-			throw new Error("Sertifikat belum tersedia atau pengajuan belum disetujui");
+			throw new Error(
+				"Sertifikat belum tersedia atau pengajuan belum disetujui",
+			);
 		}
 
 		const fileBuffer = await readFile(join(process.cwd(), sub.suratPath));

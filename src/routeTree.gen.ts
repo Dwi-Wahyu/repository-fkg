@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as UsulanBukuRouteImport } from './routes/usulan-buku'
 import { Route as StatusRouteImport } from './routes/status'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as AksesInternalRouteImport } from './routes/akses-internal'
 import { Route as AjukanRouteImport } from './routes/ajukan'
 import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as DokumenIdRouteImport } from './routes/dokumen.$id'
 import { Route as AdminUsulanBukuRouteImport } from './routes/admin/usulan-buku'
 import { Route as AdminPengajuanRouteImport } from './routes/admin/pengajuan'
+import { Route as DokumenIdPreviewRouteImport } from './routes/dokumen.$id.preview'
 
 const UsulanBukuRoute = UsulanBukuRouteImport.update({
   id: '/usulan-buku',
@@ -33,6 +35,11 @@ const StatusRoute = StatusRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AksesInternalRoute = AksesInternalRouteImport.update({
+  id: '/akses-internal',
+  path: '/akses-internal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AjukanRoute = AjukanRouteImport.update({
@@ -70,42 +77,53 @@ const AdminPengajuanRoute = AdminPengajuanRouteImport.update({
   path: '/pengajuan',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const DokumenIdPreviewRoute = DokumenIdPreviewRouteImport.update({
+  id: '/preview',
+  path: '/preview',
+  getParentRoute: () => DokumenIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/ajukan': typeof AjukanRoute
+  '/akses-internal': typeof AksesInternalRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
-  '/dokumen/$id': typeof DokumenIdRoute
+  '/dokumen/$id': typeof DokumenIdRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/dokumen/$id/preview': typeof DokumenIdPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ajukan': typeof AjukanRoute
+  '/akses-internal': typeof AksesInternalRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
-  '/dokumen/$id': typeof DokumenIdRoute
+  '/dokumen/$id': typeof DokumenIdRouteWithChildren
   '/admin': typeof AdminIndexRoute
+  '/dokumen/$id/preview': typeof DokumenIdPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteRouteWithChildren
   '/ajukan': typeof AjukanRoute
+  '/akses-internal': typeof AksesInternalRoute
   '/login': typeof LoginRoute
   '/status': typeof StatusRoute
   '/usulan-buku': typeof UsulanBukuRoute
   '/admin/pengajuan': typeof AdminPengajuanRoute
   '/admin/usulan-buku': typeof AdminUsulanBukuRoute
-  '/dokumen/$id': typeof DokumenIdRoute
+  '/dokumen/$id': typeof DokumenIdRouteWithChildren
   '/admin/': typeof AdminIndexRoute
+  '/dokumen/$id/preview': typeof DokumenIdPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -113,6 +131,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/ajukan'
+    | '/akses-internal'
     | '/login'
     | '/status'
     | '/usulan-buku'
@@ -120,10 +139,12 @@ export interface FileRouteTypes {
     | '/admin/usulan-buku'
     | '/dokumen/$id'
     | '/admin/'
+    | '/dokumen/$id/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/ajukan'
+    | '/akses-internal'
     | '/login'
     | '/status'
     | '/usulan-buku'
@@ -131,11 +152,13 @@ export interface FileRouteTypes {
     | '/admin/usulan-buku'
     | '/dokumen/$id'
     | '/admin'
+    | '/dokumen/$id/preview'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/ajukan'
+    | '/akses-internal'
     | '/login'
     | '/status'
     | '/usulan-buku'
@@ -143,16 +166,18 @@ export interface FileRouteTypes {
     | '/admin/usulan-buku'
     | '/dokumen/$id'
     | '/admin/'
+    | '/dokumen/$id/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRouteRoute: typeof AdminRouteRouteWithChildren
   AjukanRoute: typeof AjukanRoute
+  AksesInternalRoute: typeof AksesInternalRoute
   LoginRoute: typeof LoginRoute
   StatusRoute: typeof StatusRoute
   UsulanBukuRoute: typeof UsulanBukuRoute
-  DokumenIdRoute: typeof DokumenIdRoute
+  DokumenIdRoute: typeof DokumenIdRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -176,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/akses-internal': {
+      id: '/akses-internal'
+      path: '/akses-internal'
+      fullPath: '/akses-internal'
+      preLoaderRoute: typeof AksesInternalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ajukan': {
@@ -227,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPengajuanRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/dokumen/$id/preview': {
+      id: '/dokumen/$id/preview'
+      path: '/preview'
+      fullPath: '/dokumen/$id/preview'
+      preLoaderRoute: typeof DokumenIdPreviewRouteImport
+      parentRoute: typeof DokumenIdRoute
+    }
   }
 }
 
@@ -246,14 +285,27 @@ const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
   AdminRouteRouteChildren,
 )
 
+interface DokumenIdRouteChildren {
+  DokumenIdPreviewRoute: typeof DokumenIdPreviewRoute
+}
+
+const DokumenIdRouteChildren: DokumenIdRouteChildren = {
+  DokumenIdPreviewRoute: DokumenIdPreviewRoute,
+}
+
+const DokumenIdRouteWithChildren = DokumenIdRoute._addFileChildren(
+  DokumenIdRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRouteRoute: AdminRouteRouteWithChildren,
   AjukanRoute: AjukanRoute,
+  AksesInternalRoute: AksesInternalRoute,
   LoginRoute: LoginRoute,
   StatusRoute: StatusRoute,
   UsulanBukuRoute: UsulanBukuRoute,
-  DokumenIdRoute: DokumenIdRoute,
+  DokumenIdRoute: DokumenIdRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
