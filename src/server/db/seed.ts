@@ -1,6 +1,5 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import bcrypt from "bcryptjs";
 import { db } from "./index";
 import { submissions, users } from "./schema";
 
@@ -20,30 +19,16 @@ async function main() {
 	await Bun.write(kmDummyPath, dummyPdfContent);
 	await Bun.write(skripsiDummyPath, dummyPdfContent);
 
-	const adminPasswordHash = await bcrypt.hash("admin123", 10);
-
-	console.log("👤 Seeding admin user...");
+	console.log("👤 Finding admin user...");
 	let adminId = 1;
-	try {
-		// Clean users first to prevent key collision if seeding multiple times
-		await db.delete(users);
-		const [insertRes] = await db.insert(users).values({
-			username: "admin",
-			passwordHash: adminPasswordHash,
-			role: "admin",
-			email: "admin@antigravity.tech",
-		});
-		adminId = insertRes.insertId;
-		console.log("✅ Admin user seeded.");
-	} catch (e) {
-		console.log("⚠️ Admin user seeding error:", (e as Error).message);
-		// Try to query admin id if already exists
-		const existingAdmin = await db.query.users.findFirst({
-			where: (u, { eq }) => eq(u.username, "admin"),
-		});
-		if (existingAdmin) {
-			adminId = existingAdmin.id;
-		}
+	const existingAdmin = await db.query.users.findFirst({
+		where: (u, { eq }) => eq(u.username, "admin"),
+	});
+	if (existingAdmin) {
+		adminId = existingAdmin.id;
+		console.log(`✅ Admin user found with ID: ${adminId}`);
+	} else {
+		console.log("⚠️ Admin user not found. Using default adminId = 1.");
 	}
 
 	console.log("📄 Seeding mock submissions...");
