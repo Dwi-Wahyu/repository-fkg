@@ -166,7 +166,7 @@ function StatusComponent() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground pb-20 relative overflow-x-hidden">
+    <div className="min-h-svh w-full bg-background text-foreground pb-20 relative overflow-x-hidden">
       {/* Blobs */}
       <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/5 dark:bg-indigo-500/2 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 bg-purple-500/5 dark:bg-purple-500/2 rounded-full blur-3xl pointer-events-none"></div>

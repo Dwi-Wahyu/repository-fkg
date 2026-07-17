@@ -202,7 +202,7 @@ function HomeComponent() {
             </div>
             <div className="md:col-span-3">
               <Select value={jenisDokumen} onValueChange={setJenisDokumen}>
-                <SelectTrigger className="bg-background/50 border-border/60 text-base">
+                <SelectTrigger className="w-full md:w-fit">
                   <SelectValue placeholder="Semua Jenis Dokumen" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card">
@@ -215,7 +215,7 @@ function HomeComponent() {
             </div>
             <div className="md:col-span-3">
               <Select value={programStudi} onValueChange={setProgramStudi}>
-                <SelectTrigger className="bg-background/50 border-border/60 text-base">
+                <SelectTrigger className="w-full md:w-fit">
                   <SelectValue placeholder="Semua Program Studi" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card animate-in fade-in-50 duration-200">
@@ -234,7 +234,7 @@ function HomeComponent() {
                 disabled={loading}
                 className="w-full cursor-pointer"
               >
-                <Search className="h-5 w-5" />
+                <Search /> <span className="md:hidden">Cari</span>
               </Button>
             </div>
           </form>
@@ -309,8 +309,7 @@ function HomeComponent() {
       {/* Footer bar */}
       <footer className="w-full text-center py-6 border-t border-border bg-card/25 text-muted-foreground text-xs relative z-10">
         <p>
-          © {new Date().getFullYear()} Perpustakaan Fakultas Kedokteran Gigi
-          Universitas Hasanuddin. All rights reserved.
+          © {new Date().getFullYear()} Perpustakaan FKG Universitas Hasanuddin.
         </p>
       </footer>
     </div>

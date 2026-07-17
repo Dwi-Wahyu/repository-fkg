@@ -214,7 +214,7 @@ function DokumenDetailComponent() {
                   </p>
                   <p className="font-bold text-base">{doc.namaLengkap}</p>
                   <p className="text-xs font-mono text-muted-foreground">
-                    NIM: {doc.nim}
+                    {doc.nim}
                   </p>
                 </div>
               </div>
@@ -253,24 +253,23 @@ function DokumenDetailComponent() {
             </CardContent>
           </Card>
 
-          {/* Right: Access & Download Card */}
-          <Card className="border-border/80 bg-card/45 backdrop-blur-md shadow-lg rounded-2xl overflow-hidden">
-            <CardHeader className="pb-3 border-b border-border/40">
-              <CardTitle className="text-base font-bold flex items-center gap-1.5">
-                <FileText className="h-4 w-4 text-indigo-500" />
-                File Dokumen
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Akses unduh naskah lengkap karya ilmiah.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {loadingAccess ? (
-                <div className="flex flex-col items-center justify-center py-4 gap-2 text-xs text-muted-foreground">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
-                  <p>Memeriksa hak akses...</p>
-                </div>
-              ) : access?.allowed ? (
+          {loadingAccess ? (
+            <div className="flex flex-col items-center justify-center py-4 gap-2 text-xs text-muted-foreground">
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-500"></div>
+              <p>Memeriksa hak akses...</p>
+            </div>
+          ) : access?.allowed ? (
+            <Card className="border-border/80 bg-card/45 backdrop-blur-md shadow-lg rounded-2xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border/40">
+                <CardTitle className="text-base font-bold flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-indigo-500" />
+                  File Dokumen
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Akses unduh naskah lengkap karya ilmiah.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 text-emerald-650 dark:text-emerald-400">
                     <CheckCircle2 className="h-5 w-5 shrink-0" />
@@ -290,39 +289,29 @@ function DokumenDetailComponent() {
                     {downloading ? "Mengunduh..." : "Unduh Dokumen PDF"}
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-amber-650 dark:text-amber-400">
-                    <Lock className="h-4 w-4 shrink-0 mt-0.5" />
-                    <div className="text-xs font-medium space-y-1">
-                      <p className="font-bold">Akses Terbatas</p>
-                      <p className="opacity-90 leading-relaxed">
-                        Naskah lengkap hanya dapat diakses melalui komputer
-                        internal Perpustakaan Fakultas Kedokteran Gigi.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* <Button
-                    disabled
-                    variant="secondary"
-                    className="w-full h-11 rounded-xl gap-2 text-muted-foreground opacity-60"
-                  >
-                    <Lock className="h-4 w-4" />
-                    Akses Terbatas
-                  </Button> */}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 text-amber-650 dark:text-amber-400">
+                <Lock className="h-4 w-4 shrink-0 mt-0.5" />
+                <div className="text-xs font-medium space-y-1">
+                  <p className="font-bold">Akses Terbatas</p>
+                  <p className="opacity-90 leading-relaxed">
+                    Naskah lengkap hanya dapat diakses melalui komputer internal
+                    Perpustakaan Fakultas Kedokteran Gigi.
+                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Footer bar */}
       <footer className="w-full text-center py-6 border-t border-border bg-card/25 text-muted-foreground text-xs relative z-10 mt-auto">
         <p>
-          © {new Date().getFullYear()} Perpustakaan Fakultas Kedokteran Gigi
-          Universitas Hasanuddin. All rights reserved.
+          © {new Date().getFullYear()} Perpustakaan FKG Universitas Hasanuddin.
         </p>
       </footer>
     </div>
