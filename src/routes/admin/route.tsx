@@ -23,7 +23,7 @@ import { getSessionFn, logoutFn } from "../../server/authFunctions";
 
 export const Route = createFileRoute("/admin")({
 	beforeLoad: async () => {
-		const user = await getSessionFn();
+		const user = await getSessionFn({ data: { cb: Date.now() } });
 		if (user?.role !== "admin") {
 			toast.error("Akses ditolak. Anda harus masuk sebagai Admin.");
 			throw redirect({ to: "/login" });

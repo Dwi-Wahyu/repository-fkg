@@ -15,7 +15,7 @@ import {
 
 export const Route = createFileRoute("/dokumen/$id/preview")({
 	beforeLoad: async ({ params }) => {
-		const access = await checkDocumentAccessFn();
+		const access = await checkDocumentAccessFn({ data: { cb: Date.now() } });
 		if (!access.allowed) {
 			throw redirect({
 				to: "/akses-internal",
@@ -154,18 +154,11 @@ function DokumenPreviewComponent() {
 			</div>
 			<div className="flex-1 bg-gray-100 overflow-hidden">
 				{previewUrl && (
-					<object
-						data={previewUrl}
-						type="application/pdf"
-						className="w-full h-full"
-					>
-						<div className="flex flex-col items-center justify-center h-full p-4 text-center">
-							<p className="text-gray-600 mb-4">
-								Browser Anda tidak mendukung pratinjau PDF bawaan.
-							</p>
-							<Button onClick={handleDownload}>Unduh Dokumen PDF</Button>
-						</div>
-					</object>
+					<iframe
+						src={previewUrl}
+						className="w-full h-full border-0"
+						title={fileName}
+					/>
 				)}
 			</div>
 		</div>

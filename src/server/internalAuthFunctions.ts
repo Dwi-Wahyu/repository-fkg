@@ -1,27 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
-
-const COOKIE_NAME = "internal_access_token";
-
-async function computeInternalToken(): Promise<string> {
-	const secret = process.env.INTERNAL_PASSWORD || "";
-	// Bypass bundler analysis
-	const cryptoName = "node:crypto";
-	const { createHmac } = (await import(cryptoName)) as typeof import("node:crypto");
-	return createHmac("sha256", secret)
-		.update("internal-access-granted")
-		.digest("hex");
-}
-
-export async function hasInternalAccess(): Promise<boolean> {
-	const secret = process.env.INTERNAL_PASSWORD;
-	if (!secret) return false;
-	const serverName = "@tanstack/react-start/server";
-	const { getCookie } = (await import(serverName)) as typeof import("@tanstack/react-start/server");
-	const token = getCookie(COOKIE_NAME);
-	if (!token) return false;
-	const computed = await computeInternalToken();
-	return token === computed;
-}
+import {
+	clearInternalAccessCookie,
+	computeInternalToken,
+	hasInternalAccess,
+	setInternalAccessCookie,
+} from "./lib/internalAccess";
 
 export const internalLoginFn = createServerFn({ method: "POST" })
 	.validator((data: Record<string, unknown>) => {
@@ -43,36 +26,22 @@ export const internalLoginFn = createServerFn({ method: "POST" })
 			throw new Error("Username atau password salah");
 		}
 
-		const serverName = "@tanstack/react-start/server";
-		const { setCookie } = (await import(serverName)) as typeof import("@tanstack/react-start/server");
 		const token = await computeInternalToken();
-		setCookie(COOKIE_NAME, token, {
-			path: "/",
-			httpOnly: true,
-			sameSite: "lax",
-			maxAge: 60 * 60 * 24 * 30, // 30 hari
-		});
+		setInternalAccessCookie(token);
 
 		return { success: true };
 	});
 
 export const internalLogoutFn = createServerFn({ method: "POST" }).handler(
 	async () => {
-		const serverName = "@tanstack/react-start/server";
-		const { setCookie } = (await import(serverName)) as typeof import("@tanstack/react-start/server");
-		setCookie(COOKIE_NAME, "", {
-			path: "/",
-			httpOnly: true,
-			sameSite: "lax",
-			maxAge: 0,
-		});
+		clearInternalAccessCookie();
 		return { success: true };
 	},
 );
 
-export const getInternalAccessStatusFn = createServerFn({
-	method: "GET",
-}).handler(async () => {
-	const granted = await hasInternalAccess();
-	return { granted };
-});
+export const getInternalAccessStatusFn = createServerFn({ method: "GET" })
+	.validator((data: any) => data)
+	.handler(async () => {
+		const granted = await hasInternalAccess();
+		return { granted };
+	});

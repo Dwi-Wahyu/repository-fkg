@@ -160,16 +160,26 @@ function AdminPengajuanComponent() {
 	const validateEditForm = () => {
 		const newErrors: Record<string, string> = {};
 
-		// Only Nama Lengkap is required for admin
+		// Required fields to match database constraints
 		if (!editNamaLengkap.trim())
 			newErrors.namaLengkap = "Nama lengkap wajib diisi";
 		else if (editNamaLengkap.trim().length < 3)
 			newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
 
-		// Validate other fields only if filled (not empty)
-		if (editNim.trim()) {
-			if (!/^[a-zA-Z0-9.\-/]+$/.test(editNim.trim()))
-				newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+		if (!editNim.trim()) {
+			newErrors.nim = "NIM wajib diisi";
+		} else if (!/^[a-zA-Z0-9.\-/]+$/.test(editNim.trim())) {
+			newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+		}
+
+		if (!editProgramStudi) {
+			newErrors.programStudi = "Program studi wajib diisi";
+		}
+
+		if (!editJudulSkripsi.trim()) {
+			newErrors.judulSkripsi = "Judul karya ilmiah wajib diisi";
+		} else if (editJudulSkripsi.trim().length < 5) {
+			newErrors.judulSkripsi = "Judul karya ilmiah minimal 5 karakter";
 		}
 
 		if (editEmail.trim()) {
@@ -268,16 +278,26 @@ function AdminPengajuanComponent() {
 	const validateAddForm = () => {
 		const newErrors: Record<string, string> = {};
 
-		// Only Nama Lengkap is required text field for admin
+		// Required fields to match database constraints
 		if (!addNamaLengkap.trim())
 			newErrors.namaLengkap = "Nama lengkap wajib diisi";
 		else if (addNamaLengkap.trim().length < 3)
 			newErrors.namaLengkap = "Nama lengkap minimal 3 karakter";
 
-		// Validate other fields only if filled (not empty)
-		if (addNim.trim()) {
-			if (!/^[a-zA-Z0-9.\-/]+$/.test(addNim.trim()))
-				newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+		if (!addNim.trim()) {
+			newErrors.nim = "NIM wajib diisi";
+		} else if (!/^[a-zA-Z0-9.\-/]+$/.test(addNim.trim())) {
+			newErrors.nim = "NIM hanya boleh huruf, angka, titik, strip, dan slash";
+		}
+
+		if (!addProgramStudi) {
+			newErrors.programStudi = "Program studi wajib diisi";
+		}
+
+		if (!addJudulSkripsi.trim()) {
+			newErrors.judulSkripsi = "Judul karya ilmiah wajib diisi";
+		} else if (addJudulSkripsi.trim().length < 5) {
+			newErrors.judulSkripsi = "Judul karya ilmiah minimal 5 karakter";
 		}
 
 		if (addEmail.trim()) {

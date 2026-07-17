@@ -59,8 +59,8 @@ export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
 	return { success: true };
 });
 
-export const getSessionFn = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const getSessionFn = createServerFn({ method: "GET" })
+	.validator((data: any) => data)
+	.handler(async () => {
 		return await getUserFromSession();
-	},
-);
+	});

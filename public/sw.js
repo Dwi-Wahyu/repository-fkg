@@ -1,4 +1,4 @@
-const CACHE_NAME = "fkg-bebas-pustaka-v1";
+const CACHE_NAME = "fkg-bebas-pustaka-v2";
 const APP_SHELL = ["/manifest.webmanifest", "/logo.webp", "/favicon.png"];
 
 self.addEventListener("install", (event) => {

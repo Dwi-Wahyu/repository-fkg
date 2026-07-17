@@ -53,7 +53,7 @@ export const submissionValidationSchema = yup.object().shape({
 		.default("tidak_ada"),
 });
 
-// Relaxed Yup schema for admin — only Nama Lengkap is required text field
+// Relaxed Yup schema for admin — name, nim, judul, and prodi are required to match database constraints
 export const adminSubmissionValidationSchema = yup.object().shape({
 	namaLengkap: yup
 		.string()
@@ -61,12 +61,11 @@ export const adminSubmissionValidationSchema = yup.object().shape({
 		.min(3, "Minimal 3 karakter"),
 	nim: yup
 		.string()
-		.optional()
-		.transform((v) => (v === "" || v === null ? undefined : v))
-		.test(
-			"nim-format",
+		.required("NIM wajib diisi")
+		.min(5, "Minimal 5 karakter")
+		.matches(
+			/^[a-zA-Z0-9.\-/]+$/,
 			"NIM hanya boleh huruf, angka, titik, strip, dan slash",
-			(v) => !v || /^[a-zA-Z0-9.\-/]+$/.test(v),
 		),
 	dosenPembimbingPenguji: yup
 		.string()
@@ -74,8 +73,8 @@ export const adminSubmissionValidationSchema = yup.object().shape({
 		.transform((v) => (v === "" || v === null ? undefined : v)),
 	judulSkripsi: yup
 		.string()
-		.optional()
-		.transform((v) => (v === "" || v === null ? undefined : v)),
+		.required("Judul Skripsi wajib diisi")
+		.min(5, "Minimal 5 karakter"),
 	alamatLengkap: yup
 		.string()
 		.optional()
@@ -91,13 +90,8 @@ export const adminSubmissionValidationSchema = yup.object().shape({
 		),
 	programStudi: yup
 		.string()
-		.optional()
-		.transform((v) => (v === "" || v === null ? undefined : v))
-		.test(
-			"prodi-valid",
-			"Program Studi tidak terdaftar",
-			(v) => !v || Object.keys(programStudiMap).includes(v),
-		),
+		.required("Program Studi wajib diisi")
+		.oneOf(Object.keys(programStudiMap), "Program Studi tidak terdaftar"),
 	email: yup
 		.string()
 		.optional()
@@ -951,13 +945,13 @@ export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
 		return doc;
 	});
 
-export const checkDocumentAccessFn = createServerFn({ method: "GET" }).handler(
-	async () => {
+export const checkDocumentAccessFn = createServerFn({ method: "GET" })
+	.validator((data: any) => data)
+	.handler(async () => {
 		const { checkDocumentAccess } = await import("./lib/documentAccess");
 		const allowed = await checkDocumentAccess();
 		return { allowed };
-	},
-);
+	});
 
 export const downloadDocumentFn = createServerFn({ method: "POST" })
 	.validator((d: { id: number }) => d)

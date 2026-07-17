@@ -19,7 +19,7 @@ import { getSessionFn, loginFn } from "../server/authFunctions";
 
 export const Route = createFileRoute("/login")({
 	beforeLoad: async () => {
-		const user = await getSessionFn();
+		const user = await getSessionFn({ data: { cb: Date.now() } });
 		if (user) {
 			if (user.role === "admin") {
 				throw redirect({ to: "/admin" });

@@ -35,7 +35,7 @@ export const Route = createFileRoute("/")({
 	loaderDeps: ({ search }) => search,
 	loader: async ({ deps }) => {
 		const [user, result] = await Promise.all([
-			getSessionFn(),
+			getSessionFn({ data: { cb: Date.now() } }),
 			getPublicDocumentsFn({ data: deps }),
 		]);
 		return { user, ...result };

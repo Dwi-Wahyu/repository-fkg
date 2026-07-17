@@ -23,11 +23,19 @@ import {
 	CardHeader,
 	CardTitle,
 } from "../components/ui/card";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "../components/ui/dialog";
 import { toast } from "../components/ui/useToast";
 import { programStudiMap } from "../server/db/schema";
 import {
 	checkDocumentAccessFn,
 	downloadDocumentFn,
+	getDocumentPreviewFn,
 	getPublicDocumentDetailFn,
 } from "../server/submissionFunctions";
 
@@ -36,7 +44,7 @@ export const Route = createFileRoute("/dokumen/$id")({
 		const docId = parseInt(params.id, 10);
 		const [doc, access] = await Promise.all([
 			getPublicDocumentDetailFn({ data: { id: docId } }),
-			checkDocumentAccessFn(),
+			checkDocumentAccessFn({ data: { cb: Date.now() } }),
 		]);
 		return { doc, access };
 	},
@@ -47,6 +55,41 @@ export const Route = createFileRoute("/dokumen/$id")({
 function DokumenDetailComponent() {
 	const { doc, access } = Route.useLoaderData();
 	const [downloading, setDownloading] = useState(false);
+	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const [loadingPreview, setLoadingPreview] = useState(false);
+
+	const handleOpenPreview = async () => {
+		if (!doc) return;
+		setIsPreviewOpen(true);
+		if (previewUrl) return;
+
+		setLoadingPreview(true);
+		try {
+			const res = await getDocumentPreviewFn({ data: { id: doc.id } });
+			const binaryString = window.atob(res.base64);
+			const bytes = new Uint8Array(binaryString.length);
+			for (let i = 0; i < binaryString.length; i++) {
+				bytes[i] = binaryString.charCodeAt(i);
+			}
+			const blob = new Blob([bytes], { type: "application/pdf" });
+			const url = window.URL.createObjectURL(blob);
+			setPreviewUrl(url);
+		} catch (err: any) {
+			toast.error(err.message || "Gagal memuat pratinjau dokumen");
+			setIsPreviewOpen(false);
+		} finally {
+			setLoadingPreview(false);
+		}
+	};
+
+	const handleOpenChange = (open: boolean) => {
+		setIsPreviewOpen(open);
+		if (!open && previewUrl) {
+			window.URL.revokeObjectURL(previewUrl);
+			setPreviewUrl(null);
+		}
+	};
 
 	const handleDownload = async () => {
 		if (!doc) return;
@@ -223,19 +266,14 @@ function DokumenDetailComponent() {
 											</p>
 										</div>
 									</div>
-									<div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+									<div className="flex flex-col gap-2.5">
 										<Button
-											asChild
+											onClick={handleOpenPreview}
 											variant="outline"
 											className="w-full h-11 rounded-xl gap-2 font-bold cursor-pointer transition-all active:scale-[0.98]"
 										>
-											<Link
-												to="/dokumen/$id/preview"
-												params={{ id: String(doc.id) }}
-											>
-												<Eye className="h-4 w-4" />
-												Pratinjau di Browser
-											</Link>
+											<Eye className="h-4 w-4" />
+											Pratinjau di Browser
 										</Button>
 										<Button
 											onClick={handleDownload}
@@ -281,6 +319,40 @@ function DokumenDetailComponent() {
 					© {new Date().getFullYear()} Perpustakaan FKG Universitas Hasanuddin.
 				</p>
 			</footer>
+
+			{/* Preview Dialog */}
+			<Dialog open={isPreviewOpen} onOpenChange={handleOpenChange}>
+				<DialogContent className="min-w-[calc(100vw-2rem)] h-[calc(100vh-2rem)] flex flex-col justify-between gap-0 p-0 bg-card border-border shadow-2xl rounded-3xl overflow-hidden">
+					<DialogHeader className="px-6 pt-6 border-b border-border/40 pb-4">
+						<DialogTitle className="text-xl font-bold flex items-center gap-2">
+							<FileText className="h-5 w-5 text-indigo-500" />
+							<span>Pratinjau Dokumen</span>
+						</DialogTitle>
+						<DialogDescription className="text-xs truncate">
+							{doc.skripsiOriginalName || "Dokumen.pdf"}
+						</DialogDescription>
+					</DialogHeader>
+
+					<div className="flex-1 bg-muted/10 overflow-hidden relative">
+						{loadingPreview ? (
+							<div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50">
+								<div className="h-8 w-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+								<p className="text-sm text-muted-foreground">Membuat pratinjau PDF...</p>
+							</div>
+						) : previewUrl ? (
+							<iframe
+								src={`${previewUrl}#toolbar=0`}
+								className="w-full h-full border-0"
+								title="Preview Dokumen"
+							/>
+						) : (
+							<div className="absolute inset-0 flex flex-col items-center justify-center text-sm text-muted-foreground">
+								Gagal memuat pratinjau.
+							</div>
+						)}
+					</div>
+				</DialogContent>
+			</Dialog>
 		</div>
 	);
 }

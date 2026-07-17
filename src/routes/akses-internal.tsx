@@ -2,7 +2,6 @@ import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { yupValidator } from "@tanstack/yup-form-adapter";
 import { Lock, LogIn } from "lucide-react";
-import * as yup from "yup";
 import { Button } from "../components/ui/button";
 import {
 	Card,
@@ -24,7 +23,9 @@ export const Route = createFileRoute("/akses-internal")({
 		redirect: (search.redirect as string) || undefined,
 	}),
 	beforeLoad: async ({ search }) => {
-		const access = await getInternalAccessStatusFn();
+		const access = await getInternalAccessStatusFn({
+			data: { cb: Date.now() },
+		});
 		if (access.granted) {
 			throw redirect({
 				to: search.redirect || "/",
@@ -48,39 +49,29 @@ function AksesInternalComponent() {
 		onSubmit: async ({ value }) => {
 			try {
 				await internalLoginFn({ data: value });
-				toast({
-					title: "Login berhasil",
-					description: "Akses internal telah diberikan.",
-				});
+				toast.success("Login berhasil. Akses internal telah diberikan.");
 				navigate({
 					to: search.redirect || "/",
 				});
 			} catch (error: unknown) {
-				toast({
-					title: "Login gagal",
-					description: error instanceof Error ? error.message : "Terjadi kesalahan sistem.",
-					variant: "destructive",
-				});
+				const errMsg =
+					error instanceof Error ? error.message : "Terjadi kesalahan sistem.";
+				toast.error(`Login gagal: ${errMsg}`);
 			}
 		},
 	});
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gray-50/50 p-4">
-			<Card className="w-full max-w-md shadow-lg border-0 bg-white">
-				<CardHeader className="space-y-2 text-center pb-6 border-b border-gray-100">
-					<div className="mx-auto bg-indigo-50 w-12 h-12 rounded-full flex items-center justify-center mb-2">
-						<Lock className="w-6 h-6 text-indigo-600" />
-					</div>
-					<CardTitle className="text-2xl font-bold tracking-tight text-gray-900">
-						Login Komputer Internal
-					</CardTitle>
-					<CardDescription className="text-gray-500 text-sm max-w-xs mx-auto">
+		<div className="min-h-screen flex items-center justify-center p-4">
+			<Card className="w-full max-w-md shadow-lg border-0">
+				<CardHeader className="space-y-2 text-center">
+					<CardTitle>Login Komputer Internal</CardTitle>
+					<CardDescription>
 						Khusus komputer di lingkungan Perpustakaan FKG Unhas untuk membuka
 						akses baca dokumen.
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="pt-6">
+				<CardContent>
 					<form
 						onSubmit={(e) => {
 							e.preventDefault();
@@ -92,7 +83,8 @@ function AksesInternalComponent() {
 						<form.Field
 							name="username"
 							validators={{
-								onChange: yup.string().required("Username wajib diisi"),
+								onChange: ({ value }) =>
+									!value ? "Username wajib diisi" : undefined,
 							}}
 						>
 							{(field) => (
@@ -121,15 +113,14 @@ function AksesInternalComponent() {
 						<form.Field
 							name="password"
 							validators={{
-								onChange: yup.string().required("Password wajib diisi"),
+								onChange: ({ value }) =>
+									!value ? "Password wajib diisi" : undefined,
 							}}
 						>
 							{(field) => (
 								<div className="space-y-2">
 									<div className="flex items-center justify-between">
-										<Label htmlFor={field.name} className="text-gray-700">
-											Password
-										</Label>
+										<Label htmlFor={field.name}>Password</Label>
 									</div>
 									<Input
 										id={field.name}
