@@ -101,8 +101,8 @@ export const Route = createFileRoute("/admin/pengajuan")({
 			programStudi: (search.programStudi as string) || undefined,
 			sortBy: (search.sortBy as string) || "createdAt",
 			sortOrder: (search.sortOrder as "asc" | "desc") || "desc",
-			page: (search.page as number) || 1,
-			pageSize: (search.pageSize as number) || 10,
+			page: search.page ? Number(search.page) || 1 : 1,
+			pageSize: search.pageSize ? Number(search.pageSize) || 10 : 10,
 		} as {
 			search?: string;
 			status?: "pending" | "diverifikasi" | "ditolak";

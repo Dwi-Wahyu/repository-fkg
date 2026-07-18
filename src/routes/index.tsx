@@ -30,7 +30,7 @@ export const Route = createFileRoute("/")({
     search: (search.search as string) || undefined,
     programStudi: (search.programStudi as string) || undefined,
     jenisDokumen: (search.jenisDokumen as string) || undefined,
-    page: (search.page as number) || 1,
+    page: search.page ? Number(search.page) || 1 : 1,
   }),
   loaderDeps: ({ search }) => search,
   loader: async ({ deps }) => {
@@ -97,7 +97,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
   };
 
   return (
-    <div className="bg-background text-foreground font-body-md flex flex-col pt-16 md:pt-0 pb-20 md:pb-0">
+    <div className="bg-background text-foreground font-body-md flex flex-col pt-16 md:pt-0 md:pb-0">
       {/* Top Nav Bar */}
       <header className="fixed top-0 left-0 right-0 w-full z-50 bg-[#840000] shadow-md flex items-center justify-between px-6 md:px-12 h-16 md:h-20 max-w-full mx-auto">
         <div className="flex items-center gap-4">
@@ -330,7 +330,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 
                 {/* Pagination */}
                 {totalPages > 1 && (
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#e6bdb7]">
+                  <div className="flex items-center justify-between mt-6">
                     <p className="text-sm text-[#5c403b] hidden sm:block">
                       Menampilkan{" "}
                       <span className="font-medium text-[#191c1d]">
