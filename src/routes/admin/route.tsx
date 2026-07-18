@@ -16,7 +16,6 @@ import {
 	X,
 } from "lucide-react";
 import { useState } from "react";
-import { ModeToggle } from "../../components/mode-toggle";
 import { Button } from "../../components/ui/button";
 import { toast } from "../../components/ui/useToast";
 import { getSessionFn, logoutFn } from "../../server/authFunctions";
@@ -167,7 +166,6 @@ function AdminLayoutComponent() {
 						</Button>
 					</div>
 					<div className="flex items-center gap-3">
-						<ModeToggle />
 						<Button
 							variant="outline"
 							size="sm"

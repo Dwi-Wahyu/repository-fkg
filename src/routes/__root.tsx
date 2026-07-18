@@ -10,7 +10,6 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { LayoutDashboard, LogOut, Menu } from "lucide-react";
-import { ModeToggle } from "../components/mode-toggle";
 import { ThemeProvider } from "../components/theme-provider";
 import { Button } from "../components/ui/button";
 import {
@@ -181,12 +180,10 @@ function RootComponent() {
                   Masuk
                 </Link>
               )}
-              <ModeToggle />
             </nav>
 
             {/* Mobile Navigation Dropdown */}
             <div className="flex md:hidden items-center gap-2">
-              <ModeToggle />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button

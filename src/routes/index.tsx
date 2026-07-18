@@ -311,10 +311,10 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
                             ] || doc.programStudi}
                           </span>
                         </div>
-                        <h3 className="font-serif text-[#840000] font-semibold text-lg mb-2 line-clamp-2 group-hover:text-[#b00000] transition-colors">
+                        <h3 className="text-[#840000] font-semibold text-lg mb-2 line-clamp-2 group-hover:text-[#b00000] transition-colors">
                           {doc.judulSkripsi}
                         </h3>
-                        <p className="font-sans text-sm text-[#5c403b] mb-4 flex-grow">
+                        <p className="text-sm text-[#5c403b] mb-4 flex-grow">
                           Oleh: {doc.namaLengkap}
                         </p>
                         <div className="mt-auto flex justify-between items-center border-t border-[#e6bdb7] pt-4">
