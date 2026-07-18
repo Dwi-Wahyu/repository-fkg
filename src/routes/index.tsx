@@ -67,13 +67,15 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
   const debouncedSearchText = useDebouncedValue(searchText, 400);
 
   useEffect(() => {
-    if (debouncedSearchText !== searchParams.search) {
+    const currentSearch = searchParams.search || "";
+    if (debouncedSearchText !== currentSearch) {
       navigate({
         search: (prev) => ({
           ...prev,
           search: debouncedSearchText || undefined,
           page: 1,
         }),
+        resetScroll: false,
       });
     }
   }, [debouncedSearchText, searchParams.search, navigate]);
