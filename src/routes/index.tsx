@@ -108,11 +108,11 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 
         <div className="flex items-center gap-3">
           {user ? (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="secondary" size="sm">
               <Link to="/admin">Dashboard Admin</Link>
             </Button>
           ) : (
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="secondary" size="sm">
               <Link to="/login">Login Admin</Link>
             </Button>
           )}
@@ -157,13 +157,13 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
                   Ajukan Bebas Pustaka
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="secondary">
                 <Link to="/status" search={{}}>
                   <Search className="mr-2 h-4 w-4" />
                   Cek Status Pengajuan
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline">
+              <Button asChild size="lg" variant="secondary">
                 <Link to="/usulan-buku">
                   <BookPlus className="mr-2 h-4 w-4" />
                   Usulan Buku
