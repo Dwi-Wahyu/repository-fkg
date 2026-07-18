@@ -229,6 +229,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
                       programStudi: value === "all" ? undefined : value,
                       page: 1,
                     }),
+                    resetScroll: false,
                   })
                 }
               >
@@ -258,6 +259,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
                       jenisDokumen: value === "all" ? undefined : value,
                       page: 1,
                     }),
+                    resetScroll: false,
                   })
                 }
               >
