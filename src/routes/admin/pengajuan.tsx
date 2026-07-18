@@ -499,6 +499,7 @@ function AdminPengajuanComponent() {
 				...searchParams,
 				page: newPage,
 			},
+			resetScroll: false,
 		});
 	};
 

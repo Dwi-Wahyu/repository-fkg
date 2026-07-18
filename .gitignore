@@ -49,3 +49,4 @@ ecosystem.config.cjs
 /staging/
 
 scripts/READY_TO_SEED_DATA.csv
+scripts/READY_TO_SEED_DATA_WITH_FILENAMES.csv

@@ -119,9 +119,9 @@ function AdminLayoutComponent() {
 	);
 
 	return (
-		<div className="admin-layout flex min-h-screen bg-background text-foreground">
+		<div className="admin-layout flex h-screen overflow-hidden bg-background text-foreground">
 			{/* Desktop Sidebar Navigation */}
-			<aside className="admin-sidebar w-64 border-r border-border bg-card/45 backdrop-blur-md p-6 hidden md:flex flex-col shrink-0">
+			<aside className="admin-sidebar w-64 h-full border-r border-border bg-card/45 backdrop-blur-md p-6 hidden md:flex flex-col shrink-0">
 				{sidebarContent()}
 			</aside>
 
@@ -153,9 +153,9 @@ function AdminLayoutComponent() {
 			)}
 
 			{/* Main Layout Area */}
-			<div className="flex-1 flex flex-col min-h-screen min-w-0">
+			<div className="flex-1 flex flex-col h-full min-w-0">
 				{/* Admin Topbar */}
-				<header className="flex items-center justify-between border-b border-border bg-card/45 backdrop-blur-md px-6 py-3 sticky top-0 z-30 h-14 w-full">
+				<header className="flex items-center justify-between border-b border-border bg-card/45 backdrop-blur-md px-6 py-3 sticky top-0 z-30 h-14 w-full shrink-0">
 					<div className="flex items-center gap-2">
 						<Button
 							variant="outline"
@@ -181,7 +181,7 @@ function AdminLayoutComponent() {
 				</header>
 
 				{/* Main Content View */}
-				<main className="admin-content flex-1 p-8 overflow-y-auto">
+				<main className="admin-content flex-1 p-8 overflow-y-auto custom-scrollbar">
 					<Outlet />
 				</main>
 			</div>

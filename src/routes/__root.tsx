@@ -37,7 +37,7 @@ export const Route = createRootRoute({
       },
       {
         name: "theme-color",
-        content: "#4f46e5",
+        content: "#840000",
       },
       {
         title: "Repository FKG Unhas",
