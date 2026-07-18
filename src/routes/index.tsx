@@ -80,13 +80,6 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
     }
   }, [debouncedSearchText, searchParams.search, navigate]);
 
-  useEffect(() => {
-    document.documentElement.classList.add("custom-scrollbar");
-    return () => {
-      document.documentElement.classList.remove("custom-scrollbar");
-    };
-  }, []);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
