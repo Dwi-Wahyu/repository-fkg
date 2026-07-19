@@ -746,6 +746,7 @@ function AdminPengajuanComponent() {
 				<Table>
 					<TableHeader className="bg-muted/15">
 						<TableRow>
+							<TableHead className="w-[56px]" />
 							<TableHead className="w-[100px] font-bold">Kode</TableHead>
 							<TableHead className="font-bold">
 								<button
@@ -806,7 +807,7 @@ function AdminPengajuanComponent() {
 						{items.length === 0 ? (
 							<TableRow>
 								<TableCell
-									colSpan={7}
+									colSpan={8}
 									className="h-24 text-center text-muted-foreground"
 								>
 									Tidak ada pengajuan ditemukan.
@@ -818,6 +819,19 @@ function AdminPengajuanComponent() {
 									key={item.id}
 									className="hover:bg-muted/10 transition-colors"
 								>
+									<TableCell>
+										{item.thumbnailDataUrl ? (
+											<img
+												src={item.thumbnailDataUrl}
+												alt=""
+												className="w-10 h-10 rounded-md object-cover border border-border"
+											/>
+										) : (
+											<div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center">
+												<FileText className="w-4 h-4 text-muted-foreground" />
+											</div>
+										)}
+									</TableCell>
 									<TableCell className="font-mono text-xs">
 										{item.trackingCode}
 									</TableCell>
@@ -1191,33 +1205,43 @@ function AdminPengajuanComponent() {
 											</Button>
 
 											{/* Skripsi Button */}
-											<Button
-												type="button"
-												variant="outline"
-												className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12"
-												onClick={() =>
-													handleDownloadFile(selectedSub.id, "skripsi")
-												}
-											>
-												<div className="flex items-center gap-2 text-left truncate pr-2">
-													<BookOpen
-														size={15}
-														className="text-indigo-500 shrink-0"
+											<div className="flex flex-col">
+												{selectedSub.thumbnailDataUrl && (
+													<img
+														src={selectedSub.thumbnailDataUrl}
+														alt="Cover skripsi"
+														className="w-full max-w-[160px] rounded-lg border border-border shadow-sm mb-3"
 													/>
-													<div className="truncate">
-														<span className="text-[10px] text-muted-foreground block leading-none">
-															File Skripsi (TTD)
-														</span>
-														<span className="text-xs truncate font-semibold block mt-0.5">
-															{selectedSub.skripsiOriginalName || "Skripsi.pdf"}
-														</span>
+												)}
+												<Button
+													type="button"
+													variant="outline"
+													className="justify-between border-border hover:bg-indigo-500/5 hover:border-indigo-500/30 cursor-pointer h-12 w-full"
+													onClick={() =>
+														handleDownloadFile(selectedSub.id, "skripsi")
+													}
+												>
+													<div className="flex items-center gap-2 text-left truncate pr-2">
+														<BookOpen
+															size={15}
+															className="text-indigo-500 shrink-0"
+														/>
+														<div className="truncate">
+															<span className="text-[10px] text-muted-foreground block leading-none">
+																File Skripsi (TTD)
+															</span>
+															<span className="text-xs truncate font-semibold block mt-0.5">
+																{selectedSub.skripsiOriginalName ||
+																	"Skripsi.pdf"}
+															</span>
+														</div>
 													</div>
-												</div>
-												<Download
-													size={14}
-													className="text-muted-foreground shrink-0"
-												/>
-											</Button>
+													<Download
+														size={14}
+														className="text-muted-foreground shrink-0"
+													/>
+												</Button>
+											</div>
 										</div>
 
 										{/* Previews group */}

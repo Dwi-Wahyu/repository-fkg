@@ -6,6 +6,10 @@ import * as yup from "yup";
 import { getUserFromSession } from "./auth";
 import { db } from "./db";
 import { programStudiMap, submissions } from "./db/schema";
+import {
+	deleteSkripsiThumbnail,
+	generateSkripsiThumbnail,
+} from "./lib/generateThumbnail";
 
 // Yup validation schema for texts (full — used by public mahasiswa form)
 export const submissionValidationSchema = yup.object().shape({
@@ -108,6 +112,18 @@ async function ensureUploadDirs() {
 	const base = join(process.cwd(), "uploads");
 	await mkdir(join(base, "kartu-mahasiswa"), { recursive: true });
 	await mkdir(join(base, "skripsi"), { recursive: true });
+}
+
+async function readThumbnailAsBase64(
+	thumbnailFileName: string | null,
+): Promise<string | null> {
+	if (!thumbnailFileName) return null;
+	try {
+		const buffer = await readFile(join(process.cwd(), "uploads", "thumbnail-skripsi", thumbnailFileName));
+		return `data:image/jpeg;base64,${buffer.toString("base64")}`;
+	} catch {
+		return null; // file hilang/corrupt — fallback ke ikon di frontend
+	}
 }
 
 export const createSubmissionFn = createServerFn({ method: "POST" })
@@ -213,13 +229,19 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 		const skripsiArrayBuffer = await skripsi.arrayBuffer();
 		await writeFile(skripsiAbsPath, Buffer.from(skripsiArrayBuffer));
 
+		// Generate thumbnail (tidak memblokir kalau gagal)
+		const skripsiThumbnailPath = await generateSkripsiThumbnail(
+			skripsiAbsPath,
+			`${trackingCode}-skripsi-${timestamp}`,
+		);
+
 		// Handle KTM file (optional for admin)
-		let kmRelPath: string | null = null;
+		let kmFileName: string | null = null;
 		let kmOriginalName: string | null = null;
 		if (kartuMahasiswa && kartuMahasiswa.size > 0) {
 			const kmExt = getExt(kartuMahasiswa.name, kartuMahasiswa.type);
-			const kmFileName = `${trackingCode}-kartu-${timestamp}.${kmExt}`;
-			kmRelPath = join("uploads", "kartu-mahasiswa", kmFileName);
+			kmFileName = `${trackingCode}-kartu-${timestamp}.${kmExt}`;
+			const kmRelPath = join("uploads", "kartu-mahasiswa", kmFileName);
 			const kmAbsPath = join(process.cwd(), kmRelPath);
 			const kmArrayBuffer = await kartuMahasiswa.arrayBuffer();
 			await writeFile(kmAbsPath, Buffer.from(kmArrayBuffer));
@@ -237,13 +259,14 @@ export const createSubmissionFn = createServerFn({ method: "POST" })
 			noTelp: noTelp || null,
 			programStudi: programStudi || null,
 			email: email || null,
-			skripsiPath: skripsiRelPath,
+			skripsiPath: skripsiFileName,
 			skripsiOriginalName: skripsi.name,
+			skripsiThumbnailPath,
 			sumbanganBuku,
 			status: "pending",
 		};
-		if (kmRelPath) {
-			insertValues.kartuMahasiswaPath = kmRelPath;
+		if (kmFileName) {
+			insertValues.kartuMahasiswaPath = kmFileName;
 			insertValues.kartuMahasiswaOriginalName = kmOriginalName;
 		}
 
@@ -344,8 +367,17 @@ export const getSubmissionsFn = createServerFn({ method: "GET" })
 			.limit(pageSize)
 			.offset((page - 1) * pageSize);
 
+		const itemsWithThumbnail = await Promise.all(
+			items.map(async (item) => ({
+				...item,
+				thumbnailDataUrl: await readThumbnailAsBase64(
+					item.skripsiThumbnailPath,
+				),
+			})),
+		);
+
 		return {
-			items,
+			items: itemsWithThumbnail,
 			totalItems,
 			totalPages: Math.ceil(totalItems / pageSize),
 			page,
@@ -368,7 +400,11 @@ export const getSubmissionDetailFn = createServerFn({ method: "GET" })
 		if (list.length === 0) {
 			throw new Error("Pengajuan tidak ditemukan");
 		}
-		return list[0];
+		const sub = list[0];
+		return {
+			...sub,
+			thumbnailDataUrl: await readThumbnailAsBase64(sub.skripsiThumbnailPath),
+		};
 	});
 
 export const getSubmissionStatusFn = createServerFn({ method: "GET" })
@@ -510,15 +546,21 @@ export const deleteSubmissionFn = createServerFn({ method: "POST" })
 		// Delete files if they exist
 		try {
 			if (sub.kartuMahasiswaPath) {
-				await unlink(join(process.cwd(), sub.kartuMahasiswaPath));
+				await unlink(join(process.cwd(), "uploads", "kartu-mahasiswa", sub.kartuMahasiswaPath));
 			}
 		} catch (e) {
 			console.error("Failed to delete kartu mahasiswa file:", e);
 		}
 
 		try {
+			await deleteSkripsiThumbnail(sub.skripsiThumbnailPath);
+		} catch (e) {
+			console.error("Failed to delete skripsi thumbnail:", e);
+		}
+
+		try {
 			if (sub.skripsiPath) {
-				await unlink(join(process.cwd(), sub.skripsiPath));
+				await unlink(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
 			}
 		} catch (e) {
 			console.error("Failed to delete skripsi file:", e);
@@ -557,7 +599,8 @@ export const downloadSubmissionFileFn = createServerFn({ method: "POST" })
 			throw new Error("File tidak ditemukan");
 		}
 
-		const absPath = join(process.cwd(), fileRelPath);
+		const folderName = data.fileType === "kartu" ? "kartu-mahasiswa" : "skripsi";
+		const absPath = join(process.cwd(), "uploads", folderName, fileRelPath);
 		let fileBuffer: Buffer;
 		try {
 			fileBuffer = await readFile(absPath);
@@ -785,14 +828,14 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 			// Delete old file
 			if (sub.kartuMahasiswaPath) {
 				try {
-					await unlink(join(process.cwd(), sub.kartuMahasiswaPath));
+					await unlink(join(process.cwd(), "uploads", "kartu-mahasiswa", sub.kartuMahasiswaPath));
 				} catch (e) {
 					console.error("Failed to delete old kartu mahasiswa file:", e);
 				}
 			}
 
 			// Add to values
-			updateValues.kartuMahasiswaPath = kmRelPath;
+			updateValues.kartuMahasiswaPath = kmFileName;
 			updateValues.kartuMahasiswaOriginalName = kartuMahasiswa.name;
 		}
 
@@ -815,18 +858,26 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 			const skripsiArrayBuffer = await skripsi.arrayBuffer();
 			await writeFile(skripsiAbsPath, Buffer.from(skripsiArrayBuffer));
 
+			// Hapus thumbnail lama, generate yang baru
+			await deleteSkripsiThumbnail(sub.skripsiThumbnailPath);
+			const skripsiThumbnailPath = await generateSkripsiThumbnail(
+				skripsiAbsPath,
+				`${sub.trackingCode}-skripsi-${timestamp}`,
+			);
+
 			// Delete old file
 			if (sub.skripsiPath) {
 				try {
-					await unlink(join(process.cwd(), sub.skripsiPath));
+					await unlink(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
 				} catch (e) {
 					console.error("Failed to delete old skripsi file:", e);
 				}
 			}
 
 			// Add to values
-			updateValues.skripsiPath = skripsiRelPath;
+			updateValues.skripsiPath = skripsiFileName;
 			updateValues.skripsiOriginalName = skripsi.name;
+			updateValues.skripsiThumbnailPath = skripsiThumbnailPath;
 		}
 
 		// 4. Update database
@@ -904,14 +955,22 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 				judulSkripsi: submissions.judulSkripsi,
 				programStudi: submissions.programStudi,
 				createdAt: submissions.createdAt,
+				skripsiThumbnailPath: submissions.skripsiThumbnailPath,
 			})
 			.from(submissions)
 			.where(and(...conditions))
 			.limit(10)
 			.offset((page - 1) * 10);
 
+		const itemsWithThumbnail = await Promise.all(
+			items.map(async ({ skripsiThumbnailPath, ...item }) => ({
+				...item,
+				thumbnailDataUrl: await readThumbnailAsBase64(skripsiThumbnailPath),
+			})),
+		);
+
 		return {
-			items,
+			items: itemsWithThumbnail,
 			totalItems: count,
 			totalPages: Math.max(1, Math.ceil(count / 10)),
 			page,
@@ -931,6 +990,7 @@ export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
 				programStudi: submissions.programStudi,
 				dosenPembimbingPenguji: submissions.dosenPembimbingPenguji,
 				createdAt: submissions.createdAt,
+				skripsiThumbnailPath: submissions.skripsiThumbnailPath,
 			})
 			.from(submissions)
 			.where(
@@ -942,7 +1002,12 @@ export const getPublicDocumentDetailFn = createServerFn({ method: "GET" })
 		const doc = list[0];
 		if (!doc)
 			throw new Error("Dokumen tidak ditemukan atau belum diverifikasi");
-		return doc;
+
+		const { skripsiThumbnailPath, ...rest } = doc;
+		return {
+			...rest,
+			thumbnailDataUrl: await readThumbnailAsBase64(skripsiThumbnailPath),
+		};
 	});
 
 export const checkDocumentAccessFn = createServerFn({ method: "GET" })
@@ -973,7 +1038,7 @@ export const downloadDocumentFn = createServerFn({ method: "POST" })
 		const sub = list[0];
 		if (!sub) throw new Error("Dokumen tidak ditemukan");
 
-		const fileBuffer = await readFile(join(process.cwd(), sub.skripsiPath));
+		const fileBuffer = await readFile(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
 		return {
 			base64: fileBuffer.toString("base64"),
 			mimeType: "application/pdf",
@@ -1003,7 +1068,7 @@ export const getDocumentPreviewFn = createServerFn({ method: "POST" })
 		const sub = list[0];
 		if (!sub) throw new Error("Dokumen tidak ditemukan");
 
-		const fileBuffer = await readFile(join(process.cwd(), sub.skripsiPath));
+		const fileBuffer = await readFile(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
 		return {
 			base64: fileBuffer.toString("base64"),
 			fileName: sub.skripsiOriginalName || "dokumen.pdf",

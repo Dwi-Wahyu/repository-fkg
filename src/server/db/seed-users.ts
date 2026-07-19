@@ -25,7 +25,9 @@ async function main() {
 	}
 
 	const totalDuration = (Date.now() - totalStartTime) / 1000;
-	console.log(`\n🎉 USER SEEDING COMPLETED IN ${totalDuration.toFixed(2)} SECONDS!`);
+	console.log(
+		`\n🎉 USER SEEDING COMPLETED IN ${totalDuration.toFixed(2)} SECONDS!`,
+	);
 	process.exit(0);
 }
 

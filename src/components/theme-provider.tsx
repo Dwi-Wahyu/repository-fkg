@@ -19,9 +19,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>({
 	setTheme: () => {},
 });
 
-export function ThemeProvider({
-	children,
-}: ThemeProviderProps) {
+export function ThemeProvider({ children }: ThemeProviderProps) {
 	useEffect(() => {
 		const root = document.documentElement;
 		root.classList.remove("dark");

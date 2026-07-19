@@ -22,11 +22,18 @@ import { submissions } from "../src/server/db/schema";
 
 const SEED_FILE = "scripts/READY_TO_SEED_DATA_WITH_TIMESTAMP.csv";
 
-const KTM_DIR = path.join(process.cwd(), "uploads", "raw-file", "ktm");
-const DOKUMEN_DIR = path.join(process.cwd(), "uploads", "raw-file", "dokumen");
+const KTM_DIR = path.join(process.cwd(), "uploads", "kartu-mahasiswa");
+const DOKUMEN_DIR = path.join(process.cwd(), "uploads", "skripsi");
 
 const TARGET_KTM_DIR = path.join(process.cwd(), "uploads", "kartu-mahasiswa");
 const TARGET_SKRIPSI_DIR = path.join(process.cwd(), "uploads", "skripsi");
+
+const THUMBNAIL_DIR = path.join(process.cwd(), "uploads", "thumbnail-skripsi");
+const TARGET_THUMBNAIL_DIR = path.join(
+	process.cwd(),
+	"uploads",
+	"thumbnail-skripsi",
+);
 
 const UNRESOLVED_REPORT = "scripts/seed-fresh-manual-review.csv";
 
@@ -88,6 +95,45 @@ function resolveFile(
 	return { path: candidates[0], reason: "ok" };
 }
 
+function buildThumbnailIndex(dir: string): Map<string, string[]> {
+	const index = new Map<string, string[]>();
+	if (!fs.existsSync(dir)) return index;
+
+	for (const filename of fs.readdirSync(dir)) {
+		const withoutExt = filename.replace(/\.jpg$/i, "");
+		const normalized = withoutExt
+			.replace(/ \(\d+\)$/, "") // suffix duplikat Chrome
+			.trim()
+			.toLowerCase();
+
+		const list = index.get(normalized) || [];
+		list.push(path.join(dir, filename));
+		index.set(normalized, list);
+	}
+	return index;
+}
+
+function resolveThumbnail(
+	skripsiActualFileName: string,
+	index: Map<string, string[]>,
+): { path: string | null; reason: string } {
+	if (!skripsiActualFileName) return { path: null, reason: "no_filename" };
+
+	// buang ekstensi dari nama file skripsi asli (.pdf/.doc/.docx dll),
+	// karena thumbnail selalu disimpan sebagai <nama-tanpa-ekstensi>.jpg
+	const withoutExt = skripsiActualFileName.replace(/\.[^./]+$/, "");
+	const key = withoutExt.trim().toLowerCase();
+	const candidates = index.get(key);
+
+	if (!candidates || candidates.length === 0) {
+		return { path: null, reason: "thumbnail_not_found" };
+	}
+	if (candidates.length > 1) {
+		return { path: null, reason: `ambiguous_${candidates.length}_candidates` };
+	}
+	return { path: candidates[0], reason: "ok" };
+}
+
 function copyToTarget(
 	sourcePath: string,
 	targetDir: string,
@@ -99,12 +145,7 @@ function copyToTarget(
 	const fileName = `${trackingCode}-${kind}.${ext}`;
 	const destAbsPath = path.join(targetDir, fileName);
 	fs.copyFileSync(sourcePath, destAbsPath);
-	// Path relatif yang disimpan ke DB (sesuai konvensi submissionFunctions.ts)
-	return path.join(
-		"uploads",
-		kind === "kartu" ? "kartu-mahasiswa" : "skripsi",
-		fileName,
-	);
+	return fileName;
 }
 
 function parseCreatedAt(value: string | undefined): Date | undefined {
@@ -118,8 +159,12 @@ async function seed() {
 	console.log(`Membaca CSV: ${SEED_FILE} ...`);
 	const rows = await readCsv(SEED_FILE);
 
+	console.log("🧹 Menghapus data lama di tabel submissions...");
+	await db.delete(submissions);
+
 	const ktmIndex = buildFileIndex(KTM_DIR);
 	const dokumenIndex = buildFileIndex(DOKUMEN_DIR);
+	const thumbIndex = buildThumbnailIndex(THUMBNAIL_DIR);
 
 	const unresolvedRows: string[] = [
 		"trackingCode,nim,namaLengkap,field,reason",
@@ -180,6 +225,38 @@ async function seed() {
 			}
 		}
 
+		// ---- Resolve Thumbnail ----
+		let skripsiThumbnailPath: string | null = null;
+		if (
+			skripsiPath !== NO_FILE_SENTINEL &&
+			skripsiPath !== NEEDS_REVIEW_SENTINEL &&
+			row.skripsiActualFileName
+		) {
+			const resolvedThumb = resolveThumbnail(row.skripsiActualFileName, thumbIndex);
+			if (resolvedThumb.path) {
+				fs.mkdirSync(TARGET_THUMBNAIL_DIR, { recursive: true });
+				const destPath = path.join(
+					TARGET_THUMBNAIL_DIR,
+					`${row.trackingCode}-skripsi.jpg`,
+				);
+				fs.copyFileSync(resolvedThumb.path, destPath);
+				skripsiThumbnailPath = `${row.trackingCode}-skripsi.jpg`;
+			} else {
+				// tidak fatal — cukup catat, dokumen tetap ke-seed tanpa thumbnail
+				unresolvedRows.push(
+					[
+						row.trackingCode,
+						nim,
+						row.namaLengkap,
+						"thumbnail",
+						resolvedThumb.reason,
+					]
+						.map((v) => `"${String(v).replace(/"/g, '""')}"`)
+						.join(","),
+				);
+			}
+		}
+
 		// ---- createdAt langsung dari CSV (sudah di-join sebelumnya) ----
 		const createdAt = parseCreatedAt(row.createdAt);
 		if (!createdAt) missingCreatedAtCount++;
@@ -199,6 +276,7 @@ async function seed() {
 			kartuMahasiswaOriginalName,
 			skripsiPath,
 			skripsiOriginalName,
+			skripsiThumbnailPath,
 			sourceType: row.sourceType,
 			status: row.status,
 			suratNomor: row.suratNomor || null,
