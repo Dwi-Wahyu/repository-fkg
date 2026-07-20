@@ -23,6 +23,7 @@ import {
 import { ToastContainer } from "../components/ui/Toast";
 import { toast } from "../components/ui/useToast";
 import { getSessionFn, logoutFn } from "../server/authFunctions";
+import { trackVisitFn } from "../server/visitorFunctions";
 
 export const Route = createRootRoute({
 	head: () => ({
@@ -50,8 +51,21 @@ export const Route = createRootRoute({
 			{ rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
 		],
 	}),
-	loader: async () => {
+	loader: async ({ location }) => {
 		const user = await getSessionFn({ data: { cb: Date.now() } });
+
+		// Only count real public visits — exclude admin panel, auth, and the
+		// internal-access gate so staff/internal traffic never inflates visitor stats.
+		const path = location.pathname;
+		const isTrackable =
+			!path.startsWith("/admin") &&
+			path !== "/login" &&
+			path !== "/akses-internal";
+
+		if (isTrackable) {
+			await trackVisitFn({ data: { path } });
+		}
+
 		return { user };
 	},
 	component: RootComponent,

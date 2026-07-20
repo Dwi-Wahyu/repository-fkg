@@ -102,3 +102,12 @@ export const bookSuggestions = mysqlTable("book_suggestions", {
 	coverBukuOriginalName: varchar("cover_buku_original_name", { length: 255 }),
 	createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const visitorLogs = mysqlTable("visitor_logs", {
+	id: int("id").primaryKey().autoincrement(),
+	// UUID stored in the visitor's cookie — one row per visitorId per day.
+	visitorId: varchar("visitor_id", { length: 100 }).notNull(),
+	path: varchar("path", { length: 255 }),
+	visitedAt: timestamp("visited_at").notNull().defaultNow(),
+});
+

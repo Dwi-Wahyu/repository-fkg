@@ -6,6 +6,7 @@ import {
 	FileText,
 	GraduationCap,
 	TrendingUp,
+	Users,
 	XCircle,
 } from "lucide-react";
 import {
@@ -30,10 +31,15 @@ import {
 } from "../../components/ui/card";
 import { programStudiMap } from "../../server/db/schema";
 import { getDashboardStatsFn } from "../../server/submissionFunctions";
+import { getVisitorStatsFn } from "../../server/visitorFunctions";
 
 export const Route = createFileRoute("/admin/")({
 	loader: async () => {
-		return await getDashboardStatsFn();
+		const [stats, visitorStats] = await Promise.all([
+			getDashboardStatsFn(),
+			getVisitorStatsFn(),
+		]);
+		return { ...stats, visitorStats };
 	},
 	pendingComponent: () => <AdminTableSkeleton />,
 	component: DashboardComponent,
@@ -73,6 +79,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 function DashboardComponent() {
 	const stats = Route.useLoaderData();
+	const { visitorStats } = stats;
 
 	// Format data for Prodi BarChart
 	const prodiChartData = stats.prodiBreakdown.map((item: any) => ({
@@ -174,6 +181,65 @@ function DashboardComponent() {
 					</div>
 					<div className="p-3 bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 rounded-2xl">
 						<XCircle className="h-6 w-6" />
+					</div>
+				</div>
+			</div>
+
+			{/* Visitor Stats row */}
+			<div>
+				<h3 className="text-lg font-bold text-foreground mb-3">
+					Statistik Pengunjung
+				</h3>
+				<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+					<div className="relative overflow-hidden bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between">
+						<div className="space-y-1">
+							<span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block">
+								Hari Ini
+							</span>
+							<h3 className="text-3xl font-extrabold tracking-tight text-foreground">
+								{visitorStats.today}
+							</h3>
+							<span className="text-[10px] text-muted-foreground block font-medium">
+								Pengunjung unik hari ini
+							</span>
+						</div>
+						<div className="p-3 bg-sky-500/10 dark:bg-sky-500/15 text-sky-600 dark:text-sky-400 rounded-2xl">
+							<Users className="h-6 w-6" />
+						</div>
+					</div>
+
+					<div className="relative overflow-hidden bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between">
+						<div className="space-y-1">
+							<span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block">
+								Bulan Ini
+							</span>
+							<h3 className="text-3xl font-extrabold tracking-tight text-foreground">
+								{visitorStats.thisMonth}
+							</h3>
+							<span className="text-[10px] text-muted-foreground block font-medium">
+								Pengunjung unik bulan ini
+							</span>
+						</div>
+						<div className="p-3 bg-violet-500/10 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 rounded-2xl">
+							<Users className="h-6 w-6" />
+						</div>
+					</div>
+
+					<div className="relative overflow-hidden bg-card border border-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 flex items-center justify-between">
+						<div className="space-y-1">
+							<span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider block">
+								Total
+							</span>
+							<h3 className="text-3xl font-extrabold tracking-tight text-foreground">
+								{visitorStats.total}
+							</h3>
+							<span className="text-[10px] text-muted-foreground block font-medium">
+								Sejak situs diluncurkan
+							</span>
+						</div>
+						<div className="p-3 bg-fuchsia-500/10 dark:bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-400 rounded-2xl">
+							<Users className="h-6 w-6" />
+						</div>
 					</div>
 				</div>
 			</div>

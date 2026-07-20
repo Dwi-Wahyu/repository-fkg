@@ -3,6 +3,7 @@ import path from "path";
 import csv from "csv-parser";
 import { db } from "../src/server/db";
 import { submissions } from "../src/server/db/schema";
+import { generateSkripsiThumbnail } from "../src/server/lib/generateThumbnail";
 
 /**
  * Seeder untuk DATABASE BARU / KOSONG.
@@ -242,18 +243,27 @@ async function seed() {
 				fs.copyFileSync(resolvedThumb.path, destPath);
 				skripsiThumbnailPath = `${row.trackingCode}-skripsi.jpg`;
 			} else {
-				// tidak fatal — cukup catat, dokumen tetap ke-seed tanpa thumbnail
-				unresolvedRows.push(
-					[
-						row.trackingCode,
-						nim,
-						row.namaLengkap,
-						"thumbnail",
-						resolvedThumb.reason,
-					]
-						.map((v) => `"${String(v).replace(/"/g, '""')}"`)
-						.join(","),
-				);
+				// Fallback: Generate thumbnail on-the-fly from the newly copied PDF file!
+				const sourcePdfAbsPath = path.join(process.cwd(), "uploads", "skripsi", skripsiPath);
+				const outputBaseName = `${row.trackingCode}-skripsi`;
+				const generatedName = await generateSkripsiThumbnail(sourcePdfAbsPath, outputBaseName);
+				if (generatedName) {
+					skripsiThumbnailPath = generatedName;
+					console.log(`✨ Generated thumbnail on-the-fly for ${row.nim} (${row.trackingCode})`);
+				} else {
+					// tidak fatal — cukup catat, dokumen tetap ke-seed tanpa thumbnail
+					unresolvedRows.push(
+						[
+							row.trackingCode,
+							nim,
+							row.namaLengkap,
+							"thumbnail",
+							"generation_failed",
+						]
+							.map((v) => `"${String(v).replace(/"/g, '""')}"`)
+							.join(","),
+					);
+				}
 			}
 		}
 
