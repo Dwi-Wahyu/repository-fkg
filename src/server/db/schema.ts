@@ -110,4 +110,3 @@ export const visitorLogs = mysqlTable("visitor_logs", {
 	path: varchar("path", { length: 255 }),
 	visitedAt: timestamp("visited_at").notNull().defaultNow(),
 });
-

@@ -119,7 +119,9 @@ async function readThumbnailAsBase64(
 ): Promise<string | null> {
 	if (!thumbnailFileName) return null;
 	try {
-		const buffer = await readFile(join(process.cwd(), "uploads", "thumbnail-skripsi", thumbnailFileName));
+		const buffer = await readFile(
+			join(process.cwd(), "uploads", "thumbnail-skripsi", thumbnailFileName),
+		);
 		return `data:image/jpeg;base64,${buffer.toString("base64")}`;
 	} catch {
 		return null; // file hilang/corrupt — fallback ke ikon di frontend
@@ -546,7 +548,14 @@ export const deleteSubmissionFn = createServerFn({ method: "POST" })
 		// Delete files if they exist
 		try {
 			if (sub.kartuMahasiswaPath) {
-				await unlink(join(process.cwd(), "uploads", "kartu-mahasiswa", sub.kartuMahasiswaPath));
+				await unlink(
+					join(
+						process.cwd(),
+						"uploads",
+						"kartu-mahasiswa",
+						sub.kartuMahasiswaPath,
+					),
+				);
 			}
 		} catch (e) {
 			console.error("Failed to delete kartu mahasiswa file:", e);
@@ -560,7 +569,9 @@ export const deleteSubmissionFn = createServerFn({ method: "POST" })
 
 		try {
 			if (sub.skripsiPath) {
-				await unlink(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
+				await unlink(
+					join(process.cwd(), "uploads", "skripsi", sub.skripsiPath),
+				);
 			}
 		} catch (e) {
 			console.error("Failed to delete skripsi file:", e);
@@ -599,7 +610,8 @@ export const downloadSubmissionFileFn = createServerFn({ method: "POST" })
 			throw new Error("File tidak ditemukan");
 		}
 
-		const folderName = data.fileType === "kartu" ? "kartu-mahasiswa" : "skripsi";
+		const folderName =
+			data.fileType === "kartu" ? "kartu-mahasiswa" : "skripsi";
 		const absPath = join(process.cwd(), "uploads", folderName, fileRelPath);
 		let fileBuffer: Buffer;
 		try {
@@ -828,7 +840,14 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 			// Delete old file
 			if (sub.kartuMahasiswaPath) {
 				try {
-					await unlink(join(process.cwd(), "uploads", "kartu-mahasiswa", sub.kartuMahasiswaPath));
+					await unlink(
+						join(
+							process.cwd(),
+							"uploads",
+							"kartu-mahasiswa",
+							sub.kartuMahasiswaPath,
+						),
+					);
 				} catch (e) {
 					console.error("Failed to delete old kartu mahasiswa file:", e);
 				}
@@ -868,7 +887,9 @@ export const updateSubmissionFn = createServerFn({ method: "POST" })
 			// Delete old file
 			if (sub.skripsiPath) {
 				try {
-					await unlink(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
+					await unlink(
+						join(process.cwd(), "uploads", "skripsi", sub.skripsiPath),
+					);
 				} catch (e) {
 					console.error("Failed to delete old skripsi file:", e);
 				}
@@ -1038,7 +1059,9 @@ export const downloadDocumentFn = createServerFn({ method: "POST" })
 		const sub = list[0];
 		if (!sub) throw new Error("Dokumen tidak ditemukan");
 
-		const fileBuffer = await readFile(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
+		const fileBuffer = await readFile(
+			join(process.cwd(), "uploads", "skripsi", sub.skripsiPath),
+		);
 		return {
 			base64: fileBuffer.toString("base64"),
 			mimeType: "application/pdf",
@@ -1068,7 +1091,9 @@ export const getDocumentPreviewFn = createServerFn({ method: "POST" })
 		const sub = list[0];
 		if (!sub) throw new Error("Dokumen tidak ditemukan");
 
-		const fileBuffer = await readFile(join(process.cwd(), "uploads", "skripsi", sub.skripsiPath));
+		const fileBuffer = await readFile(
+			join(process.cwd(), "uploads", "skripsi", sub.skripsiPath),
+		);
 		return {
 			base64: fileBuffer.toString("base64"),
 			fileName: sub.skripsiOriginalName || "dokumen.pdf",

@@ -1,7 +1,7 @@
 import { exec } from "node:child_process";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { basename, extname, join } from "node:path";
 import { promisify } from "node:util";
-import { mkdir, unlink, readFile, writeFile } from "node:fs/promises";
-import { extname, basename, join } from "node:path";
 
 const execAsync = promisify(exec);
 
@@ -82,7 +82,9 @@ export async function deleteSkripsiThumbnail(
 ): Promise<void> {
 	if (!thumbnailFileName) return;
 	try {
-		await unlink(join(process.cwd(), "uploads", THUMBNAIL_DIR_NAME, thumbnailFileName));
+		await unlink(
+			join(process.cwd(), "uploads", THUMBNAIL_DIR_NAME, thumbnailFileName),
+		);
 	} catch (error) {
 		console.error(
 			"[deleteSkripsiThumbnail] Gagal hapus thumbnail lama:",

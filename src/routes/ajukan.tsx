@@ -51,8 +51,8 @@ function AjukanComponent() {
 	const [dosenPembimbing, setDosenPembimbing] = useState("");
 	const [judulSkripsi, setJudulSkripsi] = useState("");
 	const [sumbanganBuku, setSumbanganBuku] = useState<
-		"individu" | "kelompok" | "tidak_ada"
-	>("tidak_ada");
+		"individu" | "kelompok" | ""
+	>("");
 
 	// File State
 	const [kartuMahasiswa, setKartuMahasiswa] = useState<File | null>(null);
@@ -130,6 +130,10 @@ function AjukanComponent() {
 			if (skripsi.size > 10 * 1024 * 1024) {
 				newErrors.skripsi = "Ukuran file maksimal 10 MB";
 			}
+		}
+
+		if (!sumbanganBuku) {
+			newErrors.sumbanganBuku = "Pilihan sumbangan buku wajib dipilih";
 		}
 
 		setErrors(newErrors);
@@ -597,26 +601,35 @@ function AjukanComponent() {
 						<CardHeader>
 							<CardTitle className="text-lg font-bold">
 								4. Sumbangan Buku Alumni{" "}
-								<span className="text-xs text-muted-foreground font-normal">
-									(Opsional)
-								</span>
+								<span className="text-rose-500">*</span>
 							</CardTitle>
 							<CardDescription>
 								Pilih jenis partisipasi sumbangan buku fisik untuk perpustakaan
 							</CardDescription>
 						</CardHeader>
 						<CardContent>
-							<div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+							<div
+								className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+								aria-invalid={!!errors.sumbanganBuku}
+							>
 								<button
 									type="button"
 									onClick={() => setSumbanganBuku("individu")}
 									className={`p-4 rounded-xl border text-left flex flex-col justify-between h-24 transition-all cursor-pointer ${
 										sumbanganBuku === "individu"
-											? "border-indigo-500 bg-indigo-500/10 text-indigo-950 dark:text-indigo-200"
+											? "border-indigo-500 bg-indigo-500/10"
 											: "border-border bg-background/40 hover:border-indigo-500/30 text-muted-foreground"
 									}`}
 								>
-									<span className="font-semibold text-sm">Individu</span>
+									<span
+										className={`font-semibold text-sm ${
+											sumbanganBuku === "individu"
+												? "text-primary font-bold"
+												: "text-foreground"
+										}`}
+									>
+										Individu
+									</span>
 									<span className="text-[10px] text-muted-foreground leading-tight">
 										Menyumbang 1 buah buku fisik secara mandiri
 									</span>
@@ -627,33 +640,29 @@ function AjukanComponent() {
 									onClick={() => setSumbanganBuku("kelompok")}
 									className={`p-4 rounded-xl border text-left flex flex-col justify-between h-24 transition-all cursor-pointer ${
 										sumbanganBuku === "kelompok"
-											? "border-indigo-500 bg-indigo-500/10 text-indigo-950 dark:text-indigo-200"
+											? "border-indigo-500 bg-indigo-500/10"
 											: "border-border bg-background/40 hover:border-indigo-500/30 text-muted-foreground"
 									}`}
 								>
-									<span className="font-semibold text-sm">Kelompok</span>
+									<span
+										className={`font-semibold text-sm ${
+											sumbanganBuku === "kelompok"
+												? "text-primary font-bold"
+												: "text-foreground"
+										}`}
+									>
+										Kelompok
+									</span>
 									<span className="text-[10px] text-muted-foreground leading-tight">
 										Menyumbang buku fisik bersama kelompok/angkatan
 									</span>
 								</button>
-
-								<button
-									type="button"
-									onClick={() => setSumbanganBuku("tidak_ada")}
-									className={`p-4 rounded-xl border text-left flex flex-col justify-between h-24 transition-all cursor-pointer ${
-										sumbanganBuku === "tidak_ada"
-											? "border-indigo-500 bg-indigo-500/10 text-indigo-950 dark:text-indigo-200"
-											: "border-border bg-background/40 hover:border-indigo-500/30 text-muted-foreground"
-									}`}
-								>
-									<span className="font-semibold text-sm">
-										Tidak Menyumbang
-									</span>
-									<span className="text-[10px] text-muted-foreground leading-tight">
-										Tidak berpartisipasi menyumbang buku fisik
-									</span>
-								</button>
 							</div>
+							{errors.sumbanganBuku && (
+								<p className="text-xs text-rose-500 mt-2">
+									{errors.sumbanganBuku}
+								</p>
+							)}
 						</CardContent>
 					</Card>
 
