@@ -5,6 +5,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	FileText,
+	FunnelX,
 	LayoutDashboard,
 	Search,
 } from "lucide-react";
@@ -30,6 +31,8 @@ export const Route = createFileRoute("/")({
 		search: (search.search as string) || undefined,
 		programStudi: (search.programStudi as string) || undefined,
 		jenisDokumen: (search.jenisDokumen as string) || undefined,
+		tahun: (search.tahun as string) || undefined,
+		pageSize: search.pageSize ? Number(search.pageSize) || 10 : 10,
 		page: search.page ? Number(search.page) || 1 : 1,
 	}),
 	loaderDeps: ({ search }) => search,
@@ -62,6 +65,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 	const page = data?.page || 1;
 	const totalPages = data?.totalPages || 1;
 	const totalItems = data?.totalItems || 0;
+	const currentLimit = searchParams.pageSize || 10;
 
 	const [searchText, setSearchText] = useState(searchParams.search || "");
 	const debouncedSearchText = useDebouncedValue(searchText, 400);
@@ -201,8 +205,9 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 
 				{/* Filters & Results */}
 				<div className="px-6 py-8 max-w-5xl mx-auto space-y-8">
-					<section className="flex flex-col md:flex-row gap-4 items-end">
-						<div className="flex-grow w-full md:w-auto relative">
+					<section className="flex flex-wrap gap-4 items-end">
+						{/* Pencarian */}
+						<div className="flex-grow min-w-[200px] relative">
 							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
 								Pencarian
 							</label>
@@ -216,7 +221,9 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 								/>
 							</div>
 						</div>
-						<div className="w-full md:w-64">
+
+						{/* Program Studi */}
+						<div className="w-full sm:w-48">
 							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
 								Program Studi
 							</label>
@@ -246,17 +253,68 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 								</SelectContent>
 							</Select>
 						</div>
-						<div className="w-full md:w-64">
+
+						{/* Jenis Dokumen & Clear Filter Button (FunnelX) */}
+						<div className="w-full sm:w-auto flex items-end gap-2">
+							<div className="w-full sm:w-40">
+								<label className="block text-xs font-semibold text-[#5c403b] mb-1">
+									Jenis Dokumen
+								</label>
+								<Select
+									value={searchParams.jenisDokumen || "all"}
+									onValueChange={(value) =>
+										navigate({
+											search: (prev) => ({
+												...prev,
+												jenisDokumen: value === "all" ? undefined : value,
+												page: 1,
+											}),
+											resetScroll: false,
+										})
+									}
+								>
+									<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
+										<SelectValue placeholder="Semua Jenis Dokumen" />
+									</SelectTrigger>
+									<SelectContent className="border-[#e6bdb7] bg-white">
+										<SelectItem value="all">Semua Jenis Dokumen</SelectItem>
+										<SelectItem value="skripsi">Skripsi</SelectItem>
+										<SelectItem value="tesis">Tesis</SelectItem>
+										<SelectItem value="disertasi">Disertasi</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+
+							{/* Clear Filter Icon Button (FunnelX) disamping kanan select Jenis Dokumen */}
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								title="Reset Filter"
+								onClick={() => {
+									setSearchText("");
+									navigate({
+										search: {},
+									});
+								}}
+								className="border-[#e6bdb7] bg-white text-[#840000] hover:bg-[#840000]/10 h-9 w-9 shrink-0 cursor-pointer"
+							>
+								<FunnelX className="h-4 w-4" />
+							</Button>
+						</div>
+
+						{/* Filter Tahun */}
+						<div className="w-full sm:w-36">
 							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
-								Jenis Dokumen
+								Tahun
 							</label>
 							<Select
-								value={searchParams.jenisDokumen || "all"}
+								value={searchParams.tahun || "all"}
 								onValueChange={(value) =>
 									navigate({
 										search: (prev) => ({
 											...prev,
-											jenisDokumen: value === "all" ? undefined : value,
+											tahun: value === "all" ? undefined : value,
 											page: 1,
 										}),
 										resetScroll: false,
@@ -264,13 +322,47 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 								}
 							>
 								<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
-									<SelectValue placeholder="Semua Jenis Dokumen" />
+									<SelectValue placeholder="Semua Tahun" />
 								</SelectTrigger>
 								<SelectContent className="border-[#e6bdb7] bg-white">
-									<SelectItem value="all">Semua Jenis Dokumen</SelectItem>
-									<SelectItem value="skripsi">Skripsi</SelectItem>
-									<SelectItem value="tesis">Tesis</SelectItem>
-									<SelectItem value="disertasi">Disertasi</SelectItem>
+									<SelectItem value="all">Semua Tahun</SelectItem>
+									{Array.from(
+										{ length: 8 },
+										(_, i) => new Date().getFullYear() - i,
+									).map((yr) => (
+										<SelectItem key={yr} value={String(yr)}>
+											Tahun {yr}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+
+						{/* Page Limit Select */}
+						<div className="w-full sm:w-32">
+							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
+								Tampilkan
+							</label>
+							<Select
+								value={String(currentLimit)}
+								onValueChange={(value) =>
+									navigate({
+										search: (prev) => ({
+											...prev,
+											pageSize: Number(value),
+											page: 1,
+										}),
+										resetScroll: false,
+									})
+								}
+							>
+								<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
+									<SelectValue placeholder="10 / hal" />
+								</SelectTrigger>
+								<SelectContent className="border-[#e6bdb7] bg-white">
+									<SelectItem value="10">10 / hal</SelectItem>
+									<SelectItem value="20">20 / hal</SelectItem>
+									<SelectItem value="50">50 / hal</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
@@ -339,11 +431,11 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 										<p className="text-sm text-[#5c403b] hidden sm:block">
 											Menampilkan{" "}
 											<span className="font-medium text-[#191c1d]">
-												{(page - 1) * 10 + 1}
+												{(page - 1) * currentLimit + 1}
 											</span>{" "}
 											hingga{" "}
 											<span className="font-medium text-[#191c1d]">
-												{Math.min(page * 10, totalItems)}
+												{Math.min(page * currentLimit, totalItems)}
 											</span>{" "}
 											dari{" "}
 											<span className="font-medium text-[#191c1d]">
@@ -388,13 +480,28 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 								)}
 							</>
 						) : (
-							<div className="text-center py-12 text-[#5c403b] space-y-2 border border-dashed border-[#e6bdb7] rounded-2xl bg-white/50">
+							<div className="text-center py-12 text-[#5c403b] space-y-3 border border-dashed border-[#e6bdb7] rounded-2xl bg-white/50">
 								<FileText className="h-10 w-10 mx-auto text-[#916f6a]/50" />
 								<p className="text-sm font-semibold">Dokumen tidak ditemukan</p>
 								<p className="text-xs max-w-md mx-auto">
 									Coba cari dengan kata kunci lain atau ubah filter pencarian
 									Anda.
 								</p>
+								<div className="pt-2">
+									<Button
+										type="button"
+										variant="outline"
+										size="sm"
+										onClick={() => {
+											setSearchText("");
+											navigate({ search: {} });
+										}}
+										className="border-[#e6bdb7] text-[#840000] hover:bg-[#840000]/10 gap-1.5 cursor-pointer text-xs font-semibold"
+									>
+										<FunnelX className="h-3.5 w-3.5" />
+										Reset Filter
+									</Button>
+								</div>
 							</div>
 						)}
 					</div>

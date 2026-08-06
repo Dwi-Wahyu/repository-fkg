@@ -975,12 +975,22 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 				search?: string;
 				programStudi?: string;
 				jenisDokumen?: string;
+				tahun?: string | number;
+				pageSize?: number;
 				page?: number;
 			} = {},
 		) => d,
 	)
 	.handler(async ({ data }) => {
-		const { search, programStudi, jenisDokumen, page = 1 } = data;
+		const {
+			search,
+			programStudi,
+			jenisDokumen,
+			tahun,
+			pageSize = 10,
+			page = 1,
+		} = data;
+		const limitVal = Number(pageSize) || 10;
 		const conditions = [eq(submissions.status, "diverifikasi")];
 		if (search) conditions.push(like(submissions.judulSkripsi, `%${search}%`));
 		if (programStudi)
@@ -994,6 +1004,12 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 				conditions.push(
 					sql`${submissions.programStudi} NOT IN ('s2_gigi', 's3_gigi')`,
 				);
+			}
+		}
+		if (tahun && tahun !== "all") {
+			const parsedYear = Number(tahun);
+			if (!isNaN(parsedYear)) {
+				conditions.push(sql`YEAR(${submissions.createdAt}) = ${parsedYear}`);
 			}
 		}
 
@@ -1014,8 +1030,8 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 			})
 			.from(submissions)
 			.where(and(...conditions))
-			.limit(10)
-			.offset((page - 1) * 10);
+			.limit(limitVal)
+			.offset((page - 1) * limitVal);
 
 		const itemsWithThumbnail = await Promise.all(
 			items.map(async ({ skripsiThumbnailPath, ...item }) => ({
@@ -1027,8 +1043,9 @@ export const getPublicDocumentsFn = createServerFn({ method: "GET" })
 		return {
 			items: itemsWithThumbnail,
 			totalItems: count,
-			totalPages: Math.max(1, Math.ceil(count / 10)),
+			totalPages: Math.max(1, Math.ceil(count / limitVal)),
 			page,
+			pageSize: limitVal,
 		};
 	});
 
