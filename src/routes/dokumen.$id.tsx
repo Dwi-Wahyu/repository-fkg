@@ -40,6 +40,9 @@ import {
 } from "../server/submissionFunctions";
 
 export const Route = createFileRoute("/dokumen/$id")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		back_url: (search.back_url as string) || undefined,
+	}),
 	loader: async ({ params }) => {
 		const docId = parseInt(params.id, 10);
 		const [doc, access] = await Promise.all([
@@ -54,10 +57,18 @@ export const Route = createFileRoute("/dokumen/$id")({
 
 function DokumenDetailComponent() {
 	const { doc, access } = Route.useLoaderData();
+	const searchParams = Route.useSearch();
 	const [downloading, setDownloading] = useState(false);
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 	const [loadingPreview, setLoadingPreview] = useState(false);
+
+	const backUrl = searchParams.back_url;
+	const getBackHref = () => {
+		if (!backUrl) return "/#daftar-dokumen";
+		if (backUrl.includes("#")) return backUrl;
+		return `${backUrl}#daftar-dokumen`;
+	};
 
 	const handleOpenPreview = async () => {
 		if (!doc) return;
@@ -133,10 +144,10 @@ function DokumenDetailComponent() {
 						Dokumen tidak ditemukan atau belum diverifikasi bebas pustaka.
 					</p>
 					<Button asChild className="rounded-xl">
-						<Link to="/">
+						<a href={getBackHref()}>
 							<ArrowLeft className="mr-2 h-4 w-4" />
 							Kembali ke Beranda
-						</Link>
+						</a>
 					</Button>
 				</div>
 			</div>
@@ -160,12 +171,12 @@ function DokumenDetailComponent() {
 						asChild
 						variant="ghost"
 						size="sm"
-						className="gap-1.5 text-muted-foreground rounded-lg"
+						className="gap-1.5 text-muted-foreground rounded-lg cursor-pointer"
 					>
-						<Link to="/">
+						<a href={getBackHref()}>
 							<ArrowLeft className="h-4 w-4" />
-							Kembali ke Beranda
-						</Link>
+							Kembali ke Daftar Dokumen
+						</a>
 					</Button>
 				</div>
 

@@ -8,6 +8,7 @@ import {
 	FunnelX,
 	LayoutDashboard,
 	Search,
+	SlidersHorizontal,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DocumentListSkeleton } from "../components/skeletons/document-list-skeleton";
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/")({
 		search: (search.search as string) || undefined,
 		programStudi: (search.programStudi as string) || undefined,
 		jenisDokumen: (search.jenisDokumen as string) || undefined,
-		tahun: (search.tahun as string) || undefined,
+		tahun: search.tahun ? String(search.tahun) : undefined,
 		pageSize: search.pageSize ? Number(search.pageSize) || 10 : 10,
 		page: search.page ? Number(search.page) || 1 : 1,
 	}),
@@ -69,6 +70,49 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 
 	const [searchText, setSearchText] = useState(searchParams.search || "");
 	const debouncedSearchText = useDebouncedValue(searchText, 400);
+
+	const activeSecondaryCount = [
+		searchParams.programStudi,
+		searchParams.jenisDokumen,
+		searchParams.tahun,
+	].filter((v) => v && v !== "all").length;
+
+	const [isFilterOpen, setIsFilterOpen] = useState(activeSecondaryCount > 0);
+
+	useEffect(() => {
+		if (activeSecondaryCount > 0) {
+			setIsFilterOpen(true);
+		}
+	}, [activeSecondaryCount]);
+
+	useEffect(() => {
+		if (window.location.hash === "#daftar-dokumen") {
+			const el = document.getElementById("daftar-dokumen");
+			if (el) {
+				setTimeout(() => {
+					el.scrollIntoView({ behavior: "smooth" });
+				}, 100);
+			}
+		}
+	}, []);
+
+	const currentQueryString = new URLSearchParams(
+		Object.entries({
+			...(searchParams.search ? { search: searchParams.search } : {}),
+			...(searchParams.programStudi
+				? { programStudi: searchParams.programStudi }
+				: {}),
+			...(searchParams.jenisDokumen
+				? { jenisDokumen: searchParams.jenisDokumen }
+				: {}),
+			...(searchParams.tahun ? { tahun: searchParams.tahun } : {}),
+			...(searchParams.pageSize
+				? { pageSize: String(searchParams.pageSize) }
+				: {}),
+			...(searchParams.page ? { page: String(searchParams.page) } : {}),
+		}),
+	).toString();
+	const backUrlParam = `/?${currentQueryString}#daftar-dokumen`;
 
 	useEffect(() => {
 		const currentSearch = searchParams.search || "";
@@ -204,60 +248,124 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 				</section>
 
 				{/* Filters & Results */}
-				<div className="px-6 py-8 max-w-5xl mx-auto space-y-8">
-					<section className="flex flex-wrap gap-4 items-end">
-						{/* Pencarian */}
-						<div className="flex-grow min-w-[200px] relative">
-							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
-								Pencarian
-							</label>
-							<div className="relative">
-								<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#916f6a] h-4 w-4" />
-								<Input
-									value={searchText}
-									onChange={(e) => setSearchText(e.target.value)}
-									placeholder="Cari judul, penulis..."
-									className="w-full pl-10 pr-4 py-2 border border-[#e6bdb7] rounded bg-white focus:ring-2 focus:ring-[#840000] focus:border-[#840000] text-sm text-[#191c1d]"
-								/>
-							</div>
+				<div className="px-6 py-8 max-w-5xl mx-auto space-y-6" id="daftar-dokumen">
+					{/* Baris Utama (Tanpa Card): Input Pencarian, Page Limit Select, Toggle Filter Lanjutan, Clear Filter (FunnelX) */}
+					<div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+						{/* Input Pencarian */}
+						<div className="flex-1 relative">
+							<Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#916f6a] h-4 w-4" />
+							<Input
+								value={searchText}
+								onChange={(e) => setSearchText(e.target.value)}
+								placeholder="Cari judul, penulis..."
+								className="w-full pl-10 pr-4 py-2 border border-[#e6bdb7] rounded-lg bg-white focus:ring-2 focus:ring-[#840000] focus:border-[#840000] text-sm text-[#191c1d]"
+							/>
 						</div>
 
-						{/* Program Studi */}
-						<div className="w-full sm:w-48">
-							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
-								Program Studi
-							</label>
+						{/* Controls: Page Limit Select, Filter Lanjutan Toggle, Clear Filter Button */}
+						<div className="flex items-center gap-2 shrink-0">
+							{/* Page Limit Select */}
 							<Select
-								value={searchParams.programStudi || "all"}
+								value={String(currentLimit)}
 								onValueChange={(value) =>
 									navigate({
 										search: (prev) => ({
 											...prev,
-											programStudi: value === "all" ? undefined : value,
+											pageSize: Number(value),
 											page: 1,
 										}),
 										resetScroll: false,
 									})
 								}
 							>
-								<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
-									<SelectValue placeholder="Semua Program Studi" />
+								<SelectTrigger className="h-9 w-[105px] border-[#e6bdb7] bg-white text-[#191c1d] text-xs rounded-lg">
+									<SelectValue placeholder="10 / hal" />
 								</SelectTrigger>
-								<SelectContent className="border-[#e6bdb7] bg-white">
-									<SelectItem value="all">Semua Program Studi</SelectItem>
-									{Object.entries(programStudiMap).map(([slug, label]) => (
-										<SelectItem key={slug} value={slug}>
-											{label}
-										</SelectItem>
-									))}
+								<SelectContent className="border-[#e6bdb7] bg-white text-xs">
+									<SelectItem value="10">10 / hal</SelectItem>
+									<SelectItem value="20">20 / hal</SelectItem>
+									<SelectItem value="50">50 / hal</SelectItem>
 								</SelectContent>
 							</Select>
-						</div>
 
-						{/* Jenis Dokumen & Clear Filter Button (FunnelX) */}
-						<div className="w-full sm:w-auto flex items-end gap-2">
-							<div className="w-full sm:w-40">
-								<label className="block text-xs font-semibold text-[#5c403b] mb-1">
+							{/* Toggle Filter Lanjutan Button */}
+							<Button
+								type="button"
+								variant={isFilterOpen ? "default" : "outline"}
+								onClick={() => setIsFilterOpen(!isFilterOpen)}
+								className={`h-9 gap-1.5 text-xs rounded-lg cursor-pointer transition-colors ${
+									isFilterOpen
+										? "bg-[#840000] text-white hover:bg-[#660000]"
+										: "border-[#e6bdb7] bg-white text-[#840000] hover:bg-[#840000]/10"
+								}`}
+							>
+								<SlidersHorizontal className="h-3.5 w-3.5" />
+								<span>Filter Lanjutan</span>
+								{activeSecondaryCount > 0 && (
+									<Badge className="ml-0.5 h-4 min-w-[16px] px-1 py-0 text-[10px] font-bold rounded-full bg-white text-[#840000] border-none flex items-center justify-center">
+										{activeSecondaryCount}
+									</Badge>
+								)}
+							</Button>
+
+							{/* Clear Filter Icon Button (FunnelX) */}
+							<Button
+								type="button"
+								variant="outline"
+								size="icon"
+								title="Reset Filter"
+								onClick={() => {
+									setSearchText("");
+									navigate({
+										search: {},
+										resetScroll: false,
+									});
+								}}
+								className="border-[#e6bdb7] bg-white text-[#840000] hover:bg-[#840000]/10 h-9 w-9 shrink-0 cursor-pointer rounded-lg"
+							>
+								<FunnelX className="h-4 w-4" />
+							</Button>
+						</div>
+					</div>
+
+					{/* Baris Filter Baru: Dalam Card dengan 3 grid column bersampingan */}
+					{isFilterOpen && (
+						<div className="bg-white/70 backdrop-blur-md p-4 md:p-5 rounded-2xl border border-[#e6bdb7]/60 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 animate-in fade-in duration-200">
+							{/* Program Studi */}
+							<div className="space-y-1">
+								<label className="block text-[11px] font-semibold text-[#5c403b]">
+									Program Studi
+								</label>
+								<Select
+									value={searchParams.programStudi || "all"}
+									onValueChange={(value) =>
+										navigate({
+											search: (prev) => ({
+												...prev,
+												programStudi: value === "all" ? undefined : value,
+												page: 1,
+											}),
+											resetScroll: false,
+										})
+									}
+								>
+									<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d] h-9 text-xs rounded-lg truncate">
+										<SelectValue placeholder="Semua Program Studi" />
+									</SelectTrigger>
+									<SelectContent className="border-[#e6bdb7] bg-white text-xs">
+										<SelectItem value="all">Semua Program Studi</SelectItem>
+										{Object.entries(programStudiMap).map(([slug, label]) => (
+											<SelectItem key={slug} value={slug}>
+												{label}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+
+							{/* Jenis Dokumen */}
+							<div className="space-y-1">
+								<label className="block text-[11px] font-semibold text-[#5c403b]">
 									Jenis Dokumen
 								</label>
 								<Select
@@ -273,10 +381,10 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 										})
 									}
 								>
-									<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
+									<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d] h-9 text-xs rounded-lg">
 										<SelectValue placeholder="Semua Jenis Dokumen" />
 									</SelectTrigger>
-									<SelectContent className="border-[#e6bdb7] bg-white">
+									<SelectContent className="border-[#e6bdb7] bg-white text-xs">
 										<SelectItem value="all">Semua Jenis Dokumen</SelectItem>
 										<SelectItem value="skripsi">Skripsi</SelectItem>
 										<SelectItem value="tesis">Tesis</SelectItem>
@@ -285,88 +393,42 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 								</Select>
 							</div>
 
-							{/* Clear Filter Icon Button (FunnelX) disamping kanan select Jenis Dokumen */}
-							<Button
-								type="button"
-								variant="outline"
-								size="icon"
-								title="Reset Filter"
-								onClick={() => {
-									setSearchText("");
-									navigate({
-										search: {},
-									});
-								}}
-								className="border-[#e6bdb7] bg-white text-[#840000] hover:bg-[#840000]/10 h-9 w-9 shrink-0 cursor-pointer"
-							>
-								<FunnelX className="h-4 w-4" />
-							</Button>
+							{/* Filter Tahun */}
+							<div className="space-y-1">
+								<label className="block text-[11px] font-semibold text-[#5c403b]">
+									Tahun Pengajuan
+								</label>
+								<Select
+									value={searchParams.tahun ? String(searchParams.tahun) : "all"}
+									onValueChange={(value) =>
+										navigate({
+											search: (prev) => ({
+												...prev,
+												tahun: value === "all" ? undefined : value,
+												page: 1,
+											}),
+											resetScroll: false,
+										})
+									}
+								>
+									<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d] h-9 text-xs rounded-lg">
+										<SelectValue placeholder="Semua Tahun" />
+									</SelectTrigger>
+									<SelectContent className="border-[#e6bdb7] bg-white text-xs">
+										<SelectItem value="all">Semua Tahun</SelectItem>
+										{Array.from(
+											{ length: 8 },
+											(_, i) => new Date().getFullYear() - i,
+										).map((yr) => (
+											<SelectItem key={yr} value={String(yr)}>
+												Tahun {yr}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
 						</div>
-
-						{/* Filter Tahun */}
-						<div className="w-full sm:w-36">
-							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
-								Tahun
-							</label>
-							<Select
-								value={searchParams.tahun || "all"}
-								onValueChange={(value) =>
-									navigate({
-										search: (prev) => ({
-											...prev,
-											tahun: value === "all" ? undefined : value,
-											page: 1,
-										}),
-										resetScroll: false,
-									})
-								}
-							>
-								<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
-									<SelectValue placeholder="Semua Tahun" />
-								</SelectTrigger>
-								<SelectContent className="border-[#e6bdb7] bg-white">
-									<SelectItem value="all">Semua Tahun</SelectItem>
-									{Array.from(
-										{ length: 8 },
-										(_, i) => new Date().getFullYear() - i,
-									).map((yr) => (
-										<SelectItem key={yr} value={String(yr)}>
-											Tahun {yr}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-
-						{/* Page Limit Select */}
-						<div className="w-full sm:w-32">
-							<label className="block text-xs font-semibold text-[#5c403b] mb-1">
-								Tampilkan
-							</label>
-							<Select
-								value={String(currentLimit)}
-								onValueChange={(value) =>
-									navigate({
-										search: (prev) => ({
-											...prev,
-											pageSize: Number(value),
-											page: 1,
-										}),
-										resetScroll: false,
-									})
-								}
-							>
-								<SelectTrigger className="w-full border-[#e6bdb7] bg-white text-[#191c1d]">
-									<SelectValue placeholder="10 / hal" />
-								</SelectTrigger>
-								<SelectContent className="border-[#e6bdb7] bg-white">
-									<SelectItem value="10">10 / hal</SelectItem>
-									<SelectItem value="20">20 / hal</SelectItem>
-									<SelectItem value="50">50 / hal</SelectItem>
-								</SelectContent>
-							</Select>
-						</div>
-					</section>
+					)}
 
 					{/* Document Grid */}
 					<div className="space-y-4">
@@ -380,6 +442,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 											key={doc.id}
 											to="/dokumen/$id"
 											params={{ id: String(doc.id) }}
+											search={{ back_url: backUrlParam }}
 											className="group bg-white border border-[#e6bdb7] rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col"
 										>
 											<div className="h-32 bg-slate-50 flex items-center justify-center border-b border-[#e6bdb7] group-hover:bg-slate-100 transition-colors overflow-hidden">
@@ -494,7 +557,7 @@ function HomeLayout({ isLoading }: { isLoading: boolean }) {
 										size="sm"
 										onClick={() => {
 											setSearchText("");
-											navigate({ search: {} });
+											navigate({ search: {}, resetScroll: false });
 										}}
 										className="border-[#e6bdb7] text-[#840000] hover:bg-[#840000]/10 gap-1.5 cursor-pointer text-xs font-semibold"
 									>

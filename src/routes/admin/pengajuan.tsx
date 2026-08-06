@@ -11,6 +11,7 @@ import {
   Eye,
   FileText,
   Filter,
+  FunnelX,
   Mail,
   MapPin,
   MoreHorizontal,
@@ -150,24 +151,6 @@ function AdminPengajuanComponent() {
   const [actionId, setActionId] = useState<number | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
-  // Advanced Filter Dialog state
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>(
-    searchParams.status || "all",
-  );
-  const [filterProdi, setFilterProdi] = useState<string>(
-    searchParams.programStudi || "all",
-  );
-  const [filterTahun, setFilterTahun] = useState<string>(
-    searchParams.tahun || "all",
-  );
-  const [filterNoKtm, setFilterNoKtm] = useState<boolean>(
-    searchParams.noKtm === "true",
-  );
-  const [filterNoSkripsi, setFilterNoSkripsi] = useState<boolean>(
-    searchParams.noSkripsi === "true",
-  );
-
   // Count active filters (status, programStudi, tahun, noKtm, noSkripsi)
   const activeFilterCount = [
     searchParams.status,
@@ -177,36 +160,15 @@ function AdminPengajuanComponent() {
     searchParams.noSkripsi,
   ].filter((val) => val && val !== "all").length;
 
-  const handleOpenFilterDialog = () => {
-    setFilterStatus(searchParams.status || "all");
-    setFilterProdi(searchParams.programStudi || "all");
-    setFilterTahun(searchParams.tahun || "all");
-    setFilterNoKtm(searchParams.noKtm === "true");
-    setFilterNoSkripsi(searchParams.noSkripsi === "true");
-    setIsFilterDialogOpen(true);
-  };
+  const [isFilterOpen, setIsFilterOpen] = useState(activeFilterCount > 0);
 
-  const handleApplyFilter = () => {
-    navigate({
-      search: {
-        ...searchParams,
-        status: (filterStatus === "all" ? undefined : filterStatus) as any,
-        programStudi: filterProdi === "all" ? undefined : filterProdi,
-        tahun: filterTahun === "all" ? undefined : filterTahun,
-        noKtm: filterNoKtm ? "true" : undefined,
-        noSkripsi: filterNoSkripsi ? "true" : undefined,
-        page: 1,
-      },
-    });
-    setIsFilterDialogOpen(false);
-  };
+  useEffect(() => {
+    if (activeFilterCount > 0) {
+      setIsFilterOpen(true);
+    }
+  }, [activeFilterCount]);
 
   const handleClearFilter = () => {
-    setFilterStatus("all");
-    setFilterProdi("all");
-    setFilterTahun("all");
-    setFilterNoKtm(false);
-    setFilterNoSkripsi(false);
     navigate({
       search: {
         ...searchParams,
@@ -218,7 +180,6 @@ function AdminPengajuanComponent() {
         page: 1,
       },
     });
-    setIsFilterDialogOpen(false);
   };
 
   const handlePageSizeChange = (val: string) => {
@@ -795,7 +756,7 @@ function AdminPengajuanComponent() {
             </Button>
           </form>
 
-          {/* Controls: Page Limit & Filter Lanjutan */}
+          {/* Controls: Page Limit, Filter Lanjutan Toggle, Clear Filter (FunnelX) */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Page Limit Select */}
             <Select
@@ -814,14 +775,14 @@ function AdminPengajuanComponent() {
               </SelectContent>
             </Select>
 
-            {/* Filter Lanjutan Button */}
+            {/* Toggle Filter Lanjutan Button */}
             <Button
               type="button"
-              variant="outline"
-              onClick={handleOpenFilterDialog}
-              className="h-9 gap-2 bg-background/40 border-border cursor-pointer relative"
+              variant={isFilterOpen ? "default" : "outline"}
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              className="h-9 gap-2 cursor-pointer relative"
             >
-              <SlidersHorizontal className="h-4 w-4 text-muted-foreground" />
+              <SlidersHorizontal className="h-4 w-4" />
               <span>Filter Lanjutan</span>
               {activeFilterCount > 0 && (
                 <Badge className="ml-1 h-5 min-w-[20px] px-1.5 py-0 text-[10px] font-bold rounded-full bg-primary text-primary-foreground flex items-center justify-center">
@@ -829,8 +790,164 @@ function AdminPengajuanComponent() {
                 </Badge>
               )}
             </Button>
+
+            {/* Clear Filter Icon Button (FunnelX) */}
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Reset Filter"
+              onClick={handleClearFilter}
+              className="border-border bg-background/40 hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 h-9 w-9 shrink-0 cursor-pointer rounded-md"
+            >
+              <FunnelX className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+
+        {/* Inline Filter Row (Muncul ketika isFilterOpen === true) */}
+        {isFilterOpen && (
+          <div className="p-4 rounded-2xl border border-border/70 bg-card/40 backdrop-blur-md space-y-4 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Status Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Status Pengajuan</Label>
+                <Select
+                  value={searchParams.status || "all"}
+                  onValueChange={(val) =>
+                    navigate({
+                      search: {
+                        ...searchParams,
+                        status: (val === "all" ? undefined : val) as any,
+                        page: 1,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-9 w-full bg-background/50 border-border text-xs rounded-md">
+                    <SelectValue placeholder="Semua Status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                    <SelectGroup>
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="diverifikasi">Terverifikasi</SelectItem>
+                      <SelectItem value="ditolak">Ditolak</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Program Studi Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Program Studi</Label>
+                <Select
+                  value={searchParams.programStudi || "all"}
+                  onValueChange={(val) =>
+                    navigate({
+                      search: {
+                        ...searchParams,
+                        programStudi: val === "all" ? undefined : val,
+                        page: 1,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-9 w-full bg-background/50 border-border text-xs rounded-md truncate">
+                    <SelectValue placeholder="Semua Program Studi" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                    <SelectGroup>
+                      <SelectItem value="all">Semua Program Studi</SelectItem>
+                      {Object.entries(programStudiMap).map(([slug, label]) => (
+                        <SelectItem key={slug} value={slug}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Tahun Filter */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Tahun Pengajuan</Label>
+                <Select
+                  value={searchParams.tahun || "all"}
+                  onValueChange={(val) =>
+                    navigate({
+                      search: {
+                        ...searchParams,
+                        tahun: val === "all" ? undefined : val,
+                        page: 1,
+                      },
+                    })
+                  }
+                >
+                  <SelectTrigger className="h-9 w-full bg-background/50 border-border text-xs rounded-md">
+                    <SelectValue placeholder="Semua Tahun" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                    <SelectGroup>
+                      <SelectItem value="all">Semua Tahun</SelectItem>
+                      {Array.from(
+                        { length: 8 },
+                        (_, i) => new Date().getFullYear() - i,
+                      ).map((yr) => (
+                        <SelectItem key={yr} value={String(yr)}>
+                          Tahun {yr}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Checkboxes: Kelengkapan Berkas */}
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <Label className="text-xs font-semibold block text-foreground">
+                Kelengkapan Berkas
+              </Label>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer text-foreground select-none">
+                  <input
+                    type="checkbox"
+                    checked={searchParams.noKtm === "true"}
+                    onChange={(e) =>
+                      navigate({
+                        search: {
+                          ...searchParams,
+                          noKtm: e.target.checked ? "true" : undefined,
+                          page: 1,
+                        },
+                      })
+                    }
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-indigo-600 cursor-pointer"
+                  />
+                  File kartu mahasiswa tidak ada
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer text-foreground select-none">
+                  <input
+                    type="checkbox"
+                    checked={searchParams.noSkripsi === "true"}
+                    onChange={(e) =>
+                      navigate({
+                        search: {
+                          ...searchParams,
+                          noSkripsi: e.target.checked ? "true" : undefined,
+                          page: 1,
+                        },
+                      })
+                    }
+                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-indigo-600 cursor-pointer"
+                  />
+                  File penelitian tidak ada
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Active Filter Chips */}
         {activeFilterCount > 0 && (
@@ -847,6 +964,14 @@ function AdminPengajuanComponent() {
                 <span className="font-semibold capitalize">
                   {searchParams.status}
                 </span>
+                <X
+                  className="h-3 w-3 cursor-pointer hover:text-rose-500"
+                  onClick={() =>
+                    navigate({
+                      search: { ...searchParams, status: undefined, page: 1 },
+                    })
+                  }
+                />
               </Badge>
             )}
             {searchParams.programStudi &&
@@ -861,6 +986,18 @@ function AdminPengajuanComponent() {
                       searchParams.programStudi as keyof typeof programStudiMap
                     ] || searchParams.programStudi}
                   </span>
+                  <X
+                    className="h-3 w-3 cursor-pointer hover:text-rose-500"
+                    onClick={() =>
+                      navigate({
+                        search: {
+                          ...searchParams,
+                          programStudi: undefined,
+                          page: 1,
+                        },
+                      })
+                    }
+                  />
                 </Badge>
               )}
             {searchParams.tahun && searchParams.tahun !== "all" && (
@@ -919,10 +1056,11 @@ function AdminPengajuanComponent() {
             <Button
               type="button"
               variant="ghost"
-              size="xs"
+              size="sm"
               onClick={handleClearFilter}
+              className="h-6 px-2 text-[11px] text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 gap-1 cursor-pointer"
             >
-              <RotateCcw />
+              <RotateCcw className="h-3 w-3" />
               Reset Filter
             </Button>
           </div>
@@ -1651,144 +1789,7 @@ function AdminPengajuanComponent() {
         </DialogContent>
       </Dialog>
 
-      {/* Filter Lanjutan Dialog */}
-      <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-        <DialogContent className="max-w-md bg-card border-border rounded-3xl p-6">
-          <DialogHeader>
-            <DialogTitle>Filter Lanjutan</DialogTitle>
-          </DialogHeader>
 
-          <div className="space-y-4 py-3">
-            {/* Status */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Status Pengajuan</Label>
-              <Select
-                value={filterStatus}
-                onValueChange={(val) => setFilterStatus(val)}
-              >
-                <SelectTrigger className="h-9 w-full bg-background/40 border-border text-xs rounded-md">
-                  <SelectValue placeholder="Semua Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
-                  <SelectGroup>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="diverifikasi">Terverifikasi</SelectItem>
-                    <SelectItem value="ditolak">Ditolak</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Program Studi */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold">Program Studi</Label>
-              <Select
-                value={filterProdi}
-                onValueChange={(val) => setFilterProdi(val)}
-              >
-                <SelectTrigger className="h-9 w-full bg-background/40 border-border text-xs rounded-md truncate">
-                  <SelectValue placeholder="Semua Program Studi" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
-                  <SelectGroup>
-                    <SelectItem value="all">Semua Program Studi</SelectItem>
-                    {Object.entries(programStudiMap).map(([slug, label]) => (
-                      <SelectItem key={slug} value={slug}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Filter Tahun (Date filter - Hanya Tahun) */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold flex items-center gap-1.5">
-                Tahun Pengajuan
-              </Label>
-              <Select
-                value={filterTahun}
-                onValueChange={(val) => setFilterTahun(val)}
-              >
-                <SelectTrigger className="h-9 w-full bg-background/40 border-border text-xs rounded-md">
-                  <SelectValue placeholder="Semua Tahun" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
-                  <SelectGroup>
-                    <SelectItem value="all">Semua Tahun</SelectItem>
-                    {Array.from(
-                      { length: 8 },
-                      (_, i) => new Date().getFullYear() - i,
-                    ).map((yr) => (
-                      <SelectItem key={yr} value={String(yr)}>
-                        Tahun {yr}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Checkbox Kelengkapan Berkas */}
-            <div className="space-y-2.5">
-              <Label className="text-xs font-semibold text-foreground block">
-                Kelengkapan Berkas
-              </Label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer text-foreground select-none">
-                  <input
-                    type="checkbox"
-                    checked={filterNoKtm}
-                    onChange={(e) => setFilterNoKtm(e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-indigo-600 cursor-pointer"
-                  />
-                  File kartu mahasiswa tidak ada
-                </label>
-                <label className="flex items-center gap-2.5 text-xs font-medium cursor-pointer text-foreground select-none">
-                  <input
-                    type="checkbox"
-                    checked={filterNoSkripsi}
-                    onChange={(e) => setFilterNoSkripsi(e.target.checked)}
-                    className="h-4 w-4 rounded border-border text-primary focus:ring-primary accent-indigo-600 cursor-pointer"
-                  />
-                  File penelitian tidak ada
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="flex sm:justify-between items-center gap-2 pt-4 border-t border-border/40 mt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={handleClearFilter}
-              className="text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 gap-1.5 cursor-pointer"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Clear Filter
-            </Button>
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsFilterDialogOpen(false)}
-                className="text-xs"
-              >
-                Batal
-              </Button>
-              <Button
-                type="button"
-                onClick={handleApplyFilter}
-                className="text-xs font-semibold cursor-pointer"
-              >
-                Terapkan Filter
-              </Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Delete Confirmation Alert */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
