@@ -1,7 +1,7 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { createServerFn } from "@tanstack/react-start";
-import { and, asc, desc, eq, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, like, or, sql } from "drizzle-orm";
 import * as yup from "yup";
 import { getUserFromSession } from "./auth";
 import { db } from "./db";
@@ -284,6 +284,9 @@ export const getSubmissionsFn = createServerFn({ method: "GET" })
 				search?: string;
 				status?: "pending" | "diverifikasi" | "ditolak";
 				programStudi?: string;
+				tahun?: string | number;
+				noKtm?: string | boolean;
+				noSkripsi?: string | boolean;
 				sortBy?: string;
 				sortOrder?: "asc" | "desc";
 				page?: number;
@@ -301,6 +304,9 @@ export const getSubmissionsFn = createServerFn({ method: "GET" })
 			search,
 			status,
 			programStudi,
+			tahun,
+			noKtm,
+			noSkripsi,
 			sortBy,
 			sortOrder,
 			page = 1,
@@ -323,6 +329,34 @@ export const getSubmissionsFn = createServerFn({ method: "GET" })
 		}
 		if (programStudi) {
 			conditions.push(eq(submissions.programStudi, programStudi as any));
+		}
+		if (tahun && tahun !== "all") {
+			const parsedYear = Number(tahun);
+			if (!isNaN(parsedYear)) {
+				conditions.push(sql`YEAR(${submissions.createdAt}) = ${parsedYear}`);
+			}
+		}
+		if (noKtm === "true" || noKtm === true) {
+			conditions.push(
+				or(
+					eq(submissions.kartuMahasiswaOriginalName, "KTM.pdf"),
+					isNull(submissions.kartuMahasiswaOriginalName),
+					eq(submissions.kartuMahasiswaOriginalName, ""),
+					isNull(submissions.kartuMahasiswaPath),
+					eq(submissions.kartuMahasiswaPath, ""),
+				),
+			);
+		}
+		if (noSkripsi === "true" || noSkripsi === true) {
+			conditions.push(
+				or(
+					eq(submissions.skripsiOriginalName, "Skripsi.pdf"),
+					isNull(submissions.skripsiOriginalName),
+					eq(submissions.skripsiOriginalName, ""),
+					isNull(submissions.skripsiPath),
+					eq(submissions.skripsiPath, ""),
+				),
+			);
 		}
 
 		const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
