@@ -221,6 +221,16 @@ function AdminPengajuanComponent() {
     setIsFilterDialogOpen(false);
   };
 
+  const handlePageSizeChange = (val: string) => {
+    navigate({
+      search: {
+        ...searchParams,
+        pageSize: Number(val),
+        page: 1,
+      },
+    });
+  };
+
   // Edit Submission states
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editNamaLengkap, setEditNamaLengkap] = useState("");
@@ -785,8 +795,26 @@ function AdminPengajuanComponent() {
             </Button>
           </form>
 
-          {/* Filter Lanjutan Button */}
+          {/* Controls: Page Limit & Filter Lanjutan */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Page Limit Select */}
+            <Select
+              value={String(searchParams.pageSize || 10)}
+              onValueChange={handlePageSizeChange}
+            >
+              <SelectTrigger className="h-9 w-[110px] bg-background/40 border-border text-xs rounded-md">
+                <SelectValue placeholder="10 / hal" />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border border-border rounded-md shadow-md text-popover-foreground">
+                <SelectGroup>
+                  <SelectItem value="10">10 / hal</SelectItem>
+                  <SelectItem value="20">20 / hal</SelectItem>
+                  <SelectItem value="50">50 / hal</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+
+            {/* Filter Lanjutan Button */}
             <Button
               type="button"
               variant="outline"
