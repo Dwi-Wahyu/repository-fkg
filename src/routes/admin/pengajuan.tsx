@@ -836,8 +836,12 @@ function AdminPengajuanComponent() {
                 </Badge>
               )}
             {searchParams.tahun && searchParams.tahun !== "all" && (
-              <Badge variant="secondary" className="gap-1 font-normal py-0.5 px-2 bg-muted/60">
-                Tahun: <span className="font-semibold">{searchParams.tahun}</span>
+              <Badge
+                variant="secondary"
+                className="gap-1 font-normal py-0.5 px-2 bg-muted/60"
+              >
+                Tahun:{" "}
+                <span className="font-semibold">{searchParams.tahun}</span>
                 <X
                   className="h-3 w-3 cursor-pointer hover:text-rose-500"
                   onClick={() =>
@@ -849,7 +853,10 @@ function AdminPengajuanComponent() {
               </Badge>
             )}
             {searchParams.noKtm === "true" && (
-              <Badge variant="secondary" className="gap-1 font-normal py-0.5 px-2 bg-muted/60">
+              <Badge
+                variant="secondary"
+                className="gap-1 font-normal py-0.5 px-2 bg-muted/60"
+              >
                 KTM: <span className="font-semibold">Tidak Ada</span>
                 <X
                   className="h-3 w-3 cursor-pointer hover:text-rose-500"
@@ -862,13 +869,20 @@ function AdminPengajuanComponent() {
               </Badge>
             )}
             {searchParams.noSkripsi === "true" && (
-              <Badge variant="secondary" className="gap-1 font-normal py-0.5 px-2 bg-muted/60">
+              <Badge
+                variant="secondary"
+                className="gap-1 font-normal py-0.5 px-2 bg-muted/60"
+              >
                 Penelitian: <span className="font-semibold">Tidak Ada</span>
                 <X
                   className="h-3 w-3 cursor-pointer hover:text-rose-500"
                   onClick={() =>
                     navigate({
-                      search: { ...searchParams, noSkripsi: undefined, page: 1 },
+                      search: {
+                        ...searchParams,
+                        noSkripsi: undefined,
+                        page: 1,
+                      },
                     })
                   }
                 />
@@ -1664,7 +1678,6 @@ function AdminPengajuanComponent() {
             {/* Filter Tahun (Date filter - Hanya Tahun) */}
             <div className="space-y-2">
               <Label className="text-xs font-semibold flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 Tahun Pengajuan
               </Label>
               <Select
@@ -1691,7 +1704,7 @@ function AdminPengajuanComponent() {
             </div>
 
             {/* Checkbox Kelengkapan Berkas */}
-            <div className="space-y-2.5 pt-3 border-t border-border/40">
+            <div className="space-y-2.5">
               <Label className="text-xs font-semibold text-foreground block">
                 Kelengkapan Berkas
               </Label>
